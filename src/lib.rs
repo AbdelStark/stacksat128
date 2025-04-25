@@ -15,6 +15,10 @@
 #![no_std]
 
 /// PRESENT-style 4-bit S-box. Good differential/linear properties.
+/// http://lightweightcrypto.org/present/
+/// Andrey Bogdanov, Lars R. Knudsen, Gregor Leander, Christof Paar, Axel Poschmann, Matthew J. B. Robshaw,
+/// Yannick Seurin, and C. Vikkelsoe. PRESENT: An Ultra-Lightweight Block Cipher.
+/// #        0   1   2   3   4   5   6   7   8   9   a   b   c   d   e   f
 const SBOX: [u8; 16] = [
     0xC, 0x5, 0x6, 0xB, 0x9, 0x0, 0xA, 0xD, 0x3, 0xE, 0xF, 0x8, 0x4, 0x7, 0x1, 0x2,
 ];

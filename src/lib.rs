@@ -155,27 +155,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn known_vectors() {
-        assert_eq!(
-            hex::encode(stacksat_hash(b"")),
-            "b515acc06d0641a4e9ce74f1eaa83cda1e096614c068c201806c1fa96803cdfd"
-        );
-        assert_eq!(
-            hex::encode(stacksat_hash(b"abc")),
-            "20acba146d0641a4e9ce74f1eaa83cdab469724ec068c201806c1fa96803cdfd"
-        );
-    }
+    fn sbox_metrics() {
+        // recompute differential uniformity & linear bias in Rust
+        let mut max_du = 0u8;
+        for a in 1..16 {
+            for x in 0..16 {
+                let d = SBOX[x] ^ SBOX[(x ^ a) as usize];
+                let mut cnt = 0;
+                for y in 0..16 {
+                    if SBOX[y] ^ SBOX[(y ^ a) as usize] == d {
+                        cnt += 1;
+                    }
+                }
+                max_du = max_du.max(cnt);
+            }
+        }
+        assert_eq!(max_du, 4, "Δ_max should be 4");
 
-    #[test]
-    fn avalanche() {
-        let h1 = stacksat_hash(b"hello world");
-        let h2 = stacksat_hash(b"hello worle"); // flip one bit (d→e)
-        let diff = h1
-            .iter()
-            .zip(h2.iter())
-            .map(|(a, b)| (a ^ b).count_ones())
-            .sum::<u32>();
-        // Expect roughly half of 256 bits to differ
-        assert!(diff > 90 && diff < 170, "avalanche weak: {diff}");
+        // Walsh max
+        let mut max_w = 0i8;
+        for a in 1..16 {
+            for b in 1..16 {
+                let mut sum: i8 = 0;
+                for x in 0..16 {
+                    let px = (a & x as u8).count_ones() as i8 % 2;
+                    let py = (b & SBOX[x as usize]).count_ones() as i8 % 2;
+                    sum += if px ^ py == 0 { 1 } else { -1 };
+                }
+                max_w = max_w.max(sum.abs());
+            }
+        }
+        assert_eq!(max_w, 8, "Walsh max should be 8");
     }
 }

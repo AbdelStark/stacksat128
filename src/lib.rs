@@ -55,7 +55,7 @@ const RC: [u8; ROUNDS] = {
     let mut i = 0;
     while i < ROUNDS {
         rc[i] = lfsr_state & 0xF; // Output the LFSR state bits
-        // Advance LFSR state using x^4 + x + 1 feedback (Right shift style)
+                                  // Advance LFSR state using x^4 + x + 1 feedback (Right shift style)
         let bit = ((lfsr_state >> 3) ^ (lfsr_state & 1)) & 1; // Feedback bit
         let next_state = (lfsr_state >> 1) | (bit << 3); // Shift right, insert feedback at MSB
         lfsr_state = if next_state == 0 { 1 } else { next_state }; // Avoid zero state

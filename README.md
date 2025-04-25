@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/stacksat128.svg)](https://crates.io/crates/stacksat128)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **STACKSAT-128** is a 256-bit cryptographic hash function designed for resource-constrained environments, specifically **Bitcoin Script**. It aims to provide **128-bit security** against standard attacks (collision, preimage) while exclusively using operations efficient and available on the Bitcoin mainnet today.
 
 ## Motivation

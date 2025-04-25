@@ -7,16 +7,8 @@ description = "A 256-bit cryptographic hash function optimized for Bitcoin Scrip
 authors = ["@AbdelStark"]
 repository = "https://github.com/AbdelStark/stacksat128"
 readme = "README.md"
-keywords = [
-    "crypto",
-    "hash",
-    "bitcoin",
-    "script",
-    "lightweight",
-    "sponge",
-    "no_std",
-]
-categories = ["cryptography", "algorithms", "no-std", "bitcoin"]
+keywords = ["cryptography", "hash", "bitcoin", "script", "sponge"]
+categories = ["cryptography", "algorithms", "no-std"]
 rust-version = "1.60"
 
 [dependencies]

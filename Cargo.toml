@@ -1,0 +1,12 @@
+[package]
+name = "stacksat128"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+heapless = "0.8"
+hex = { version = "0.4", default-features = false }
+
+[dev-dependencies]
+hex = "0.4"

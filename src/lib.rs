@@ -12,8 +12,6 @@
 //!
 //! The design is an SPN: S-box -> Permute (RowRot+Transpose) -> Mix (Col Adds v3) -> Const.
 
-#![no_std]
-
 /// PRESENT-style 4-bit S-box. Good differential/linear properties.
 /// http://lightweightcrypto.org/present/
 /// Andrey Bogdanov, Lars R. Knudsen, Gregor Leander, Christof Paar, Axel Poschmann, Matthew J. B. Robshaw,
@@ -130,18 +128,13 @@ fn round(st: &mut [u8; STATE_NIBBLES], r: usize) {
 }
 
 /// Multi-rate padding: append 0x8 (nibble), zeros, then 0x1 (nibble).
-fn pad(mut nibbles: heapless::Vec<u8, 512>) -> heapless::Vec<u8, 512> {
-    nibbles
-        .push(0x8)
-        .expect("Vec capacity exceeded during padding");
+/// Takes ownership and returns a new padded Vec.
+fn pad(mut nibbles: Vec<u8>) -> Vec<u8> {
+    nibbles.push(0x8); // Add padding byte
     while (nibbles.len() % RATE_NIBBLES) != (RATE_NIBBLES - 1) {
-        nibbles
-            .push(0x0)
-            .expect("Vec capacity exceeded during padding");
+        nibbles.push(0x0); // Pad with zeros
     }
-    nibbles
-        .push(0x1)
-        .expect("Vec capacity exceeded during padding");
+    nibbles.push(0x1); // Add final terminator byte
     debug_assert!(nibbles.len() % RATE_NIBBLES == 0);
     nibbles
 }
@@ -149,14 +142,12 @@ fn pad(mut nibbles: heapless::Vec<u8, 512>) -> heapless::Vec<u8, 512> {
 /// Compute STACKSAT-128 hash of input message bytes; returns 32-byte digest.
 pub fn stacksat_hash(msg: &[u8]) -> [u8; DIGEST_BYTES] {
     // --- 1. Message -> Nibble Vector ---
-    // Allocate potentially large vec
-    // TODO: error handling and message splitting logic
-    let mut v = heapless::Vec::<u8, 512>::new();
+    let mut v: Vec<u8> = Vec::with_capacity(msg.len() * 2 + RATE_NIBBLES); // Pre-allocate rough size
     for &byte in msg {
-        if v.push(byte >> 4).is_err() || v.push(byte & 0xF).is_err() {
-            panic!("Input message too large for heapless Vec capacity"); // Or return error
-        }
+        v.push(byte >> 4);
+        v.push(byte & 0xF);
     }
+    // Pad takes ownership and returns the padded vector
     let padded_nibbles = pad(v);
 
     // --- 2. Initialise State ---

@@ -17,11 +17,16 @@ heapless = "0.8"
 
 [dev-dependencies]
 blake3 = "1.8.2"
+criterion = "0.5.1"
 # Used only for printing digests in tests/examples
 hex = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha256 = "1.6.0"
+
+[[bench]]
+name = "vs_sha256_and_blake3"
+harness = false
 
 [profile.release]
 lto = true        # Enable Link Time Optimization

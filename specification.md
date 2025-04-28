@@ -1,7 +1,9 @@
 # STACKSAT-128 Cryptographic Hash Function Specification
 
 **Version:** 0.1-draft
+
 **Date:** April 25, 2025
+
 **Authors/Designers:** @AbdelStark
 
 ## 1. Introduction

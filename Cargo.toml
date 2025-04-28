@@ -12,8 +12,7 @@ categories = ["cryptography", "algorithms", "no-std"]
 rust-version = "1.60"
 
 [dependencies]
-# Provides Vec for no_std environments
-heapless = "0.8"
+rayon = { version = "1.10", optional = true }
 
 [dev-dependencies]
 blake3 = "1.8.2"
@@ -27,6 +26,10 @@ sha256 = "1.6.0"
 [[bench]]
 name = "vs_sha256_and_blake3"
 harness = false
+
+# Create a parallel feature
+[features]
+parallel = ["rayon"]
 
 [profile.release]
 lto = true        # Enable Link Time Optimization

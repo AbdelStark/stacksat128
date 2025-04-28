@@ -1,4 +1,4 @@
-use sha256::digest as sha256_digest;
+use sha2::{Digest, Sha256};
 use stacksat128::stacksat_hash;
 
 // Helper function to calculate Hamming distance between two byte slices
@@ -16,8 +16,10 @@ fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
 }
 
 // --- Avalanche Effect Comparison Test ---
+
 #[test]
-fn test_avalanche_comparison() {
+fn test_avalanche_comparison_integration() {
+    // Renamed slightly to avoid potential conflicts if run with unit tests
     // Use a reasonably sized input, e.g., 64 bytes
     let input_data = [0x5Au8; 64]; // Arbitrary pattern
     let num_bytes_to_flip = 16; // Limit flips to first 16 bytes (128 bits) for speed
@@ -25,8 +27,7 @@ fn test_avalanche_comparison() {
 
     // Calculate baseline hashes
     let baseline_stacksat = stacksat_hash(&input_data);
-    let baseline_sha256_str = sha256_digest(input_data.as_slice());
-    let baseline_sha256 = hex::decode(baseline_sha256_str).expect("SHA256 hex decode failed");
+    let baseline_sha256 = Sha256::digest(input_data);
     let baseline_blake3 = blake3::hash(&input_data);
 
     // Accumulators for total Hamming distance
@@ -41,14 +42,13 @@ fn test_avalanche_comparison() {
 
             // Calculate hashes of modified input
             let modified_stacksat = stacksat_hash(&modified_input);
-            let modified_sha256_str = sha256_digest(modified_input.as_slice());
-            let modified_sha256 =
-                hex::decode(modified_sha256_str).expect("SHA256 hex decode failed");
+            let modified_sha256 = Sha256::digest(modified_input);
             let modified_blake3 = blake3::hash(&modified_input);
 
             // Calculate and accumulate Hamming distances
             total_dist_stacksat += hamming_distance(&baseline_stacksat, &modified_stacksat) as u64;
-            total_dist_sha256 += hamming_distance(&baseline_sha256, &modified_sha256) as u64;
+            total_dist_sha256 +=
+                hamming_distance(baseline_sha256.as_slice(), modified_sha256.as_slice()) as u64;
             total_dist_blake3 +=
                 hamming_distance(baseline_blake3.as_bytes(), modified_blake3.as_bytes()) as u64;
         }
@@ -69,11 +69,10 @@ fn test_avalanche_comparison() {
     println!("Ideal (256-bit output): 128.00");
 
     // Assert that STACKSAT's average distance is reasonably close to the ideal 128 bits
-    // Allow roughly +/- 10% deviation from ideal (128 * 0.9 = 115.2, 128 * 1.1 = 140.8)
     assert!(avg_dist_stacksat > 115.0 && avg_dist_stacksat < 141.0,
-            "STACKSAT-128 average Hamming distance ({:.2}) is outside the acceptable range (115.0 - 141.0)", avg_dist_stacksat);
+            "STACKSAT-128 average Hamming distance ({:.2}) is outside the acceptable range [115.0, 141.0]", avg_dist_stacksat);
 
-    // Optional: Check if STACKSAT is not significantly worse than the others (e.g., within 5 bits)
+    // Optional: Check if STACKSAT is not significantly worse than the others
     assert!(
         avg_dist_stacksat > avg_dist_sha256 - 5.0,
         "STACKSAT avg dist significantly lower than SHA256"

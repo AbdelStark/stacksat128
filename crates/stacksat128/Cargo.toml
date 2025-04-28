@@ -1,0 +1,18 @@
+[package]
+name = "stacksat128"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hex = "0.4"
+
+# Dev dependencies moved to workspace level or removed if specific to script crate
+
+[dev-dependencies]
+criterion = "0.5"
+sha2 = "0.10"
+blake3 = "1.5"
+
+[[bench]]
+name = "hashing_benchmark"
+harness = false

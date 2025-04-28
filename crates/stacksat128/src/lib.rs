@@ -292,7 +292,7 @@ mod tests {
         );
         // Check the result from the previous successful run
         assert!(
-            min_diff >= 43,
+            min_diff >= 43, // Keep the original check
             "Diffusion result ({}) is lower than previous successful run (43)",
             min_diff
         );

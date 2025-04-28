@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use sha256::digest as sha256_digest;
+use sha2::{Digest, Sha256};
 use stacksat128::stacksat_hash;
 
 const KB: usize = 1024;
@@ -22,7 +22,9 @@ fn hashing_benchmarks(c: &mut Criterion) {
 
     group.bench_with_input("SHA-256 (1KB)", &data_1k, |b, data| {
         b.iter(|| {
-            sha256_digest(black_box(data));
+            let mut hasher = Sha256::new();
+            hasher.update(black_box(data));
+            hasher.finalize()
         })
     });
 
@@ -37,7 +39,9 @@ fn hashing_benchmarks(c: &mut Criterion) {
 
     group.bench_with_input("SHA-256 (64KB)", &data_64k, |b, data| {
         b.iter(|| {
-            sha256_digest(black_box(data));
+            let mut hasher = Sha256::new();
+            hasher.update(black_box(data));
+            hasher.finalize()
         })
     });
 

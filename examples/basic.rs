@@ -24,4 +24,8 @@ fn main() {
     let hash4 = stacksat_hash(input4.as_slice());
     println!("Input 4: {}", hex::encode(input4));
     println!("Hash 4: {}", hex::encode(hash4));
+
+    // Compute empty hash
+    let empty_hash = stacksat_hash(&[]);
+    println!("Empty hash: {}", hex::encode(empty_hash));
 }

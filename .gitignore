@@ -21,3 +21,5 @@ target/
 /target
 
 .cursor
+
+**/.DS_Store

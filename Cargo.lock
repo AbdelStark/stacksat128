@@ -2202,6 +2202,7 @@ dependencies = [
  "bitcoin_hashes 0.16.0",
  "bitvm",
  "esplora-client",
+ "hex",
  "itertools 0.14.0",
  "lazy_static",
  "num-bigint",

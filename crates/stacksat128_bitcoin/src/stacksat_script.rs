@@ -1,25 +1,36 @@
 use bitcoin::hex::FromHex;
-use bitcoin_script_stack::stack::{StackTracker, StackVariable};
+use bitcoin_script_stack::stack::StackTracker;
 
 pub use bitcoin_script::builder::StructuredScript as Script;
 pub use bitcoin_script::script;
 use bitvm::bigint::U256;
 use itertools::Itertools;
 
-const DEFAULT_LIMB_LEN: u8 = 4;
+// Constants for STACKSAT-128
+const RATE_NIBBLES: u32 = 32; // 128-bit rate (32 nibbles)
+const STATE_NIBBLES: u32 = 64; // 256-bit state (64 nibbles)
+const ROUNDS: u32 = 16; // Number of rounds
 
 const EMPTY_MSG_HASH: &str = "bb04e59e240854ee421cdabf5cdd0416beaaaac545a63b752792b5a41dd18b4e";
 
+// PRESENT S-box values
+const SBOX: [u8; 16] = [
+    0xC, 0x5, 0x6, 0xB, 0x9, 0x0, 0xA, 0xD, 0x3, 0xE, 0xF, 0x8, 0x4, 0x7, 0x1, 0x2,
+];
+
+// Round constants (derived from x^4 + x + 1 LFSR)
+const RC: [u8; 16] = [1, 8, 12, 14, 15, 7, 11, 5, 10, 13, 6, 3, 9, 4, 2, 1];
+
 fn stacksat128(
     stack: &mut StackTracker,
-    mut msg_len: u32,
-    define_var: bool,
-    use_full_tables: bool,
+    msg_len: u32,
+    _define_var: bool,
+    _use_full_tables: bool,
     limb_len: u8,
 ) {
-    // this assumes that the stack is empty
+    // Handle empty message case
     if msg_len == 0 {
-        // bb04e59e240854ee421cdabf5cdd0416beaaaac545a63b752792b5a41dd18b4e
+        // Return hardcoded hash for empty message
         let empty_msg_hash_bytearray = <[u8; 32]>::from_hex(EMPTY_MSG_HASH).unwrap();
 
         stack.custom(
@@ -131,9 +142,10 @@ mod tests {
     use bitvm::execute_script_buf;
 
     #[test]
-    fn test_e2e() {
+    fn test_compute_script() {
         let message: &str = "0102030405060708090A0B0C0D0E0F10112233445566778899AABBCCDDEEFF00";
         let message_bytes = hex::decode(message).unwrap();
+
         let limb_len = 4;
         let push_bytes = stacksat128_push_message_script(&message_bytes, limb_len)
             .compile()
@@ -143,9 +155,37 @@ mod tests {
             .to_bytes();
         let mut combined_script_bytes = push_bytes;
         combined_script_bytes.extend(compute_bytes);
+
         let script = ScriptBuf::from_bytes(combined_script_bytes);
         let result = execute_script_buf(script);
         println!("Result: {:?}", result);
+    }
+
+    #[test]
+    fn test_e2e() {
+        let message: &str = "0102030405060708090A0B0C0D0E0F10112233445566778899AABBCCDDEEFF00";
+        let message_bytes = hex::decode(message).unwrap();
+        let expected_hash = stacksat128::stacksat_hash(&message_bytes);
+        println!("Message: {}", message);
+        println!("Expected hash: {}", hex::encode(expected_hash));
+        let limb_len = 4;
+        let push_bytes = stacksat128_push_message_script(&message_bytes, limb_len)
+            .compile()
+            .to_bytes();
+        let compute_bytes = stacksat128_compute_script_with_limb(message_bytes.len(), limb_len)
+            .compile()
+            .to_bytes();
+        let mut combined_script_bytes = push_bytes;
+        combined_script_bytes.extend(compute_bytes);
+        combined_script_bytes.extend(
+            stacksat128_verify_output_script(expected_hash)
+                .compile()
+                .to_bytes(),
+        );
+        let script = ScriptBuf::from_bytes(combined_script_bytes);
+        let result = execute_script_buf(script);
+        println!("Result: {:?}", result);
+        assert_eq!(result.success, true);
     }
 
     #[test]

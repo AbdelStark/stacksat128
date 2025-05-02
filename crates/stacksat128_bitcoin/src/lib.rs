@@ -8,6 +8,8 @@ use bitcoin_script_stack::stack::{StackTracker, StackVariable};
 pub use bitcoin_script::builder::StructuredScript as Script;
 pub use bitcoin_script::script;
 
+mod stacksat_script;
+
 pub const STATE_NIBBLES: u32 = 64; // 256-bit state (64 nibbles)
 pub const RATE_NIBBLES: u32 = 32; // 128-bit rate (32 nibbles)
 pub const ROUNDS: u32 = 16; // Number of permutation rounds
@@ -677,6 +679,37 @@ mod tests {
     use bitcoin::ScriptBuf;
     use bitcoin_script_stack::optimizer;
     use bitvm::execute_script_buf_without_stack_limit;
+
+    /// Test that our implementation works for a non-empty message
+    #[test]
+    fn test_debug_e2e() {
+        let message_hex = "0102030405060708";
+        let message = &hex::decode(message_hex).unwrap();
+        // Compute the expected hash using the reference implementation
+        let expected_hash = stacksat128::stacksat_hash(&message);
+        let expected_hash_hex = hex::encode(expected_hash);
+
+        println!("Message: {}", message_hex);
+        println!("Expected hash: {}", expected_hash_hex);
+
+        // Create full script
+        let mut script_bytes = stacksat128_push_message_script(message)
+            .compile()
+            .to_bytes();
+
+        let compute_script = stacksat128_compute_script(message);
+        script_bytes.extend(compute_script.compile().to_bytes());
+        script_bytes.extend(
+            stacksat128_verify_output_script(expected_hash)
+                .compile()
+                .to_bytes(),
+        );
+
+        let script = ScriptBuf::from_bytes(script_bytes);
+        let result = execute_script_buf_without_stack_limit(script);
+
+        println!("Result: {:?}", result);
+    }
 
     /// Test component: addition modulo 16 (add16)
     #[test]

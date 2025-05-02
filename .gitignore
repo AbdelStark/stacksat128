@@ -23,3 +23,5 @@ target/
 .cursor
 
 **/.DS_Store
+
+CLAUDE.md

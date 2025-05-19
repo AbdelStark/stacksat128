@@ -116,36 +116,21 @@ fn stacksat128(
     // Process message input into nibbles and apply proper padding
 
     // Initialize variables to track message information
-    let msg_bytes_count = msg_len;
     let msg_nibbles_count = msg_len * 2;
-    let mut message_vars: Vec<StackVariable>;
+    let mut message_vars: Vec<StackVariable> = Vec::new();
 
     // 1.1 Define variables for the input message bytes
     if define_var {
-        let mut initial_byte_vars = Vec::with_capacity(msg_bytes_count as usize);
-        for i in 0..msg_bytes_count {
-            initial_byte_vars
-                .push(stack.define(1, &format!("msg_byte_{}", msg_bytes_count - 1 - i)));
+        for i in 0..msg_nibbles_count {
+            message_vars
+                .push(stack.define(1, &format!("msg_nibble_{}", msg_nibbles_count - 1 - i)));
         }
-        initial_byte_vars.reverse();
+        message_vars.reverse();
     }
-
-    // 1.2 Transform bytes to nibbles (4-bit values)
-    let mut output_nibble_defs = Vec::new();
-    for i in 0..msg_nibbles_count {
-        output_nibble_defs.push((1u32, format!("msg_nibble_{}", i)));
-    }
-    output_nibble_defs.reverse();
-
-    // Apply byte-to-nibble transformation
-    let transform_script = script!({ U256::transform_limbsize(limb_len as u32, 4) });
-    message_vars = stack.custom_ex(transform_script, msg_bytes_count, output_nibble_defs, 0);
-    message_vars.reverse();
 
     // 1.3 Apply padding (multi-rate 10*1 padding)
     // First append 0x8 (1000 in binary)
-    stack.number(8);
-    message_vars.push(stack.define(1, "padding_start"));
+    message_vars.push(stack.number(8));
 
     // Calculate required zero padding
     let current_len_after_8 = msg_nibbles_count as usize + 1;
@@ -156,13 +141,11 @@ fn stacksat128(
 
     // Add zero padding
     for i in 0..zeros_needed_for_pad {
-        stack.number(0);
-        message_vars.push(stack.define(1, &format!("padding_zero_{}", i)));
+        message_vars.push(stack.number(0));
     }
 
     // Add final 0x1 padding bit
-    stack.number(1);
-    message_vars.push(stack.define(1, "padding_end"));
+    message_vars.push(stack.number(1));
 
     // Verify padding is correct
     assert!(
@@ -182,6 +165,7 @@ fn stacksat128(
         println!("Debugging stack after step: 1. Message Preparation and Padding");
         stack.debug();
     }
+    return;
 
     // --- 2. Initialize State and S-Box ---
     // COMPLETELY REDESIGNED TO AVOID USING ALTSTACK
@@ -652,9 +636,9 @@ fn chunk_message(message_bytes: &[u8]) -> Vec<[u8; 32]> {
         .iter()
         .copied()
         .chain(std::iter::repeat(0u8).take(needed_padding_bytes))
-        .chunks(2) // reverse 4-byte chunks
-        .into_iter()
-        .flat_map(|chunk| chunk.collect::<Vec<u8>>().into_iter().rev())
+        // .chunks(2) // reverse 4-byte chunks
+        // .into_iter()
+        // .flat_map(|chunk| chunk.collect::<Vec<u8>>().into_iter().rev())
         .chunks(32) // collect 32-byte chunks
         .into_iter()
         .map(|mut chunk| std::array::from_fn(|_| chunk.next().unwrap()))
@@ -731,6 +715,7 @@ mod tests {
 
         // Try with explicit try/catch to get detailed error information
         let result_compute = execute_script_buf(script_no_verify);
+        println!("Result compute: {:?}", result_compute);
 
         if result_compute.success {
             println!("PUSH + COMPUTE SUCCESS - Script produced output hash");

@@ -616,7 +616,7 @@ pub fn stacksat128_push_message_script(message_bytes: &[u8], limb_len: u8) -> Sc
                 {
                     byte
                 }
-                if i == 31 || i == 63 {
+                if i == 31 {
                     {
                         U256::transform_limbsize(8, limb_len as u32)
                     }
@@ -644,18 +644,18 @@ pub fn stacksat128_verify_output_script(expected_output: [u8; 32]) -> Script {
     }
 }
 
-fn chunk_message(message_bytes: &[u8]) -> Vec<[u8; 64]> {
+fn chunk_message(message_bytes: &[u8]) -> Vec<[u8; 32]> {
     let len = message_bytes.len();
-    let needed_padding_bytes = if len % 64 == 0 { 0 } else { 64 - (len % 64) };
+    let needed_padding_bytes = if len % 32 == 0 { 0 } else { 32 - (len % 32) };
 
     message_bytes
         .iter()
         .copied()
         .chain(std::iter::repeat(0u8).take(needed_padding_bytes))
-        .chunks(4) // reverse 4-byte chunks
+        .chunks(2) // reverse 4-byte chunks
         .into_iter()
         .flat_map(|chunk| chunk.collect::<Vec<u8>>().into_iter().rev())
-        .chunks(64) // collect 64-byte chunks
+        .chunks(32) // collect 32-byte chunks
         .into_iter()
         .map(|mut chunk| std::array::from_fn(|_| chunk.next().unwrap()))
         .collect()
@@ -719,7 +719,7 @@ mod tests {
 
         // Step 1: Create the actual scripts for this test
         println!("\nPreparing Bitcoin Script implementation...");
-        let push_script = stacksat128_push_message_script(message, 8);
+        let push_script = stacksat128_push_message_script(message, 4);
         let compute_script = stacksat128_compute_script_with_limb(message.len(), 8);
         let verify_script = stacksat128_verify_output_script(expected_hash);
 

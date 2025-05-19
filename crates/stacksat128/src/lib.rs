@@ -149,6 +149,7 @@ pub fn stacksat_hash(msg: &[u8]) -> [u8; DIGEST_BYTES] {
     }
     // Pad takes ownership and returns the padded vector
     let padded_nibbles = pad(v);
+    println!("Padded nibbles: {:?}", padded_nibbles);
 
     // --- 2. Initialise State ---
     let mut st = [0u8; STATE_NIBBLES]; // All zeros IV

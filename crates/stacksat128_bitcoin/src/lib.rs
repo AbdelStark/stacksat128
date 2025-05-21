@@ -130,7 +130,7 @@ fn stacksat128(
         message_vars.push(current_nibble_var);
     }
 
-    // 1.3 Apply padding (multi-rate 10*1 padding)
+    // 1.2 Apply padding (multi-rate 10*1 padding)
     // First append 0x8 (1000 in binary)
     message_vars.push(stack.number(8));
     stack.rename(message_vars[message_vars.len() - 1], "first_padding_nibble");
@@ -145,7 +145,10 @@ fn stacksat128(
     // Add zero padding
     for i in 0..zeros_needed_for_pad {
         message_vars.push(stack.number(0));
-        stack.rename(message_vars[message_vars.len() - 1], &format!("padding_nibble_{}", i));
+        stack.rename(
+            message_vars[message_vars.len() - 1],
+            &format!("padding_nibble_{}", i),
+        );
     }
 
     // Add final 0x1 padding bit
@@ -178,30 +181,31 @@ fn stacksat128(
     // For state and S-box, we'll now create a single script that pushes everything at once
     // This is more efficient and less error-prone than individual operations
     let init_script = script!(
-        // First push 64 zeros for the state
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            <0>
-        }
-
-        // Then push the 16 S-box values
+        // First push the 16 S-box values
         for &value in STACKSATSCRIPT_SBOX.iter() {
             {value}
         }
+
+        // Then push 64 zeros for the state
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            <0>
+        }
     );
 
-    // Execute the initialization script
-    stack.custom(init_script, 0, false, 0, "init_state_and_sbox");
-
-    // Define state variables
-    let mut state_vars = Vec::with_capacity(STACKSATSCRIPT_STATE_NIBBLES);
+    // 2.2 Define output variables
+    let mut output_vars = Vec::with_capacity(1 + STACKSATSCRIPT_STATE_NIBBLES);
+    output_vars.push((16, "sbox_table".to_string()));
     for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-        state_vars.push(stack.define(1, &format!("state_{}", i)));
+        output_vars.push((1, format!("state_{}", i)));
     }
 
-    // Define S-box table
-    let _sbox_table = stack.define(16, "sbox_table");
+    // 2.3 Execute the initialization script
+    let vars: Vec<StackVariable> = stack.custom_ex(init_script, 0, output_vars, 0);
 
-    // Stack now has: message_vars[0..N] state_vars[0..63] sbox_table (top)
+    // 2.4 Define S-box table and state variables
+    let mut sbox_table: StackVariable = vars[0];
+    let mut state_vars: Vec<StackVariable> = vars[1..].to_vec();
+    // Stack now has: message_vars[0..N] sbox_table state_vars[0..63] (top)
 
     // Optional debug output
     #[cfg(debug_assertions)]
@@ -234,7 +238,7 @@ fn stacksat128(
             stack.copy_var(state_var);
 
             // Add modulo 16
-            stack.custom(
+            let absorbed_value = stack.custom(
                 script!(
                     OP_ADD        // Add the two values
                     <16> OP_2DUP  // Duplicate for comparison
@@ -248,18 +252,24 @@ fn stacksat128(
                 2,
                 true,
                 0,
-                &format!("absorb_add_{}_{}", block_idx, i),
+                &format!("absorb_{}_{}", block_idx, i),
             );
 
-            // Define the absorbed value
-            absorbed_values.push(stack.define(1, &format!("absorbed_{}_{}", block_idx, i)));
+            match absorbed_value {
+                Some(var) => {
+                    absorbed_values.push(var);
+                }
+                None => {
+                    println!("No StackVariable returned");
+                }
+            }
         }
 
         // Simplify stack reorganization
         // We have:
         // - msg_vars
-        // - state_vars (state_0...state_63) [capacity = state_32...state_63]
         // - sbox (16 values)
+        // - state_vars (state_0...state_63) [capacity = state_32...state_63]
         // - absorbed (absorbed_0..absorbed_31)
 
         // We'll drop the original state rate portion (state_0...state_31) since
@@ -267,23 +277,17 @@ fn stacksat128(
 
         // 1. Determine stack positions
         // First, create an operation to drop the rate portion (first 32 elements of state)
-        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
+        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
             // The state elements are at the same position relative to the top
             // since we're not modifying the stack in between drops
-            // S-box (16) + capacity (32) + rate (current drop)
-            let drop_position =
-                16 + (STACKSATSCRIPT_STATE_NIBBLES - STACKSATSCRIPT_RATE_NIBBLES) + 1;
+            // absorbed (32) + S-box (16) + capacity (32)
+            let drop_position = STACKSATSCRIPT_STATE_NIBBLES;
 
-            stack.custom(
-                script!({drop_position as u32} OP_ROLL OP_DROP),
-                0,
-                true,
-                0,
-                &format!("drop_rate_{}", i),
-            );
+            let var_to_remove = stack.get_var(drop_position as u32);
+            let var = stack.move_var(var_to_remove);
+            stack.drop(var);
         }
-
-        // 2. Now the stack has: msg_vars capacity absorbed sbox
+        // 2. Now the stack has: msg_vars sbox capacity absorbed
         // We need to swap absorbed and capacity
 
         // Set up the variables for the reorder
@@ -296,7 +300,7 @@ fn stacksat128(
         // Update state_vars to reflect absorption
         state_vars = next_state_vars;
 
-        // Stack: msg capacity[32..63] absorbed[0..31] sbox (top)
+        // Stack: msg sbox capacity[32..63] absorbed[0..31] (top)
 
         // --- 3b. Permutation Phase (16 Rounds) ---
         for r in 0..STACKSATSCRIPT_ROUNDS {

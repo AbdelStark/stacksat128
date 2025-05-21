@@ -319,9 +319,6 @@ fn stacksat128(
             }
 
             // --- Round Step 2: PermuteNibbles --- IMPROVED
-            // Create a single script that performs the entire permutation
-            let mut permute_script = script!();
-
             // For each output position, pick the corresponding input
             for dest_idx in 0..STACKSATSCRIPT_STATE_NIBBLES {
                 // Calculate source index from permutation table
@@ -329,28 +326,17 @@ fn stacksat128(
 
                 // Calculate depth from current stack position
                 // The depth depends on how many items we've already generated
-                let depth = STACKSATSCRIPT_STATE_NIBBLES - 1 - source_idx + dest_idx;
+                let mut depth = STACKSATSCRIPT_STATE_NIBBLES - 1 - source_idx;
+                for smaller_dest_idx in 0..dest_idx {
+                    let source_smaller_idx = STACKSATSCRIPT_INV_FINAL_PERM[smaller_dest_idx];
+                    if source_smaller_idx < source_idx {
+                        depth += 1;
+                    }
+                }
 
-                // Add to script
-                permute_script = script!(
-                    {permute_script}
-                    {depth as u32} OP_PICK
-                );
-            }
-
-            // Execute permutation
-            stack.custom(
-                permute_script,
-                STACKSATSCRIPT_STATE_NIBBLES as u32,
-                true,
-                0,
-                &format!("permute_r{}", r),
-            );
-
-            // Define permuted values
-            let mut permuted_vars = Vec::with_capacity(STACKSATSCRIPT_STATE_NIBBLES);
-            for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-                permuted_vars.push(stack.define(1, &format!("perm_r{}_{}", r, i)));
+                let var = stack.get_var(depth as u32);
+                stack.move_var(var);
+                stack.rename(var, &format!("perm_r{}_{}", r, dest_idx));
             }
 
             // --- Round Step 3: MixColumns --- SIMPLIFIED

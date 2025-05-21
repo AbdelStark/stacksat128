@@ -290,85 +290,32 @@ fn stacksat128(
         // 2. Now the stack has: msg_vars sbox capacity absorbed
         // We need to swap absorbed and capacity
 
-        // Set up the variables for the reorder
-        let mut next_state_vars = Vec::with_capacity(STACKSATSCRIPT_STATE_NIBBLES);
+        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
+            let state_position = STACKSATSCRIPT_STATE_NIBBLES - 1;
 
-        // First capacity (unchanged), then absorbed values
-        next_state_vars.extend(state_vars[STACKSATSCRIPT_RATE_NIBBLES..].iter().cloned());
-        next_state_vars.extend(absorbed_values);
+            let var_to_move = stack.get_var(state_position as u32);
+            stack.move_var(var_to_move);
+        }
 
-        // Update state_vars to reflect absorption
-        state_vars = next_state_vars;
-
-        // Stack: msg sbox capacity[32..63] absorbed[0..31] (top)
+        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
+            stack.rename(absorbed_values[i], &format!("state_{}", i));
+        }
 
         // --- 3b. Permutation Phase (16 Rounds) ---
         for r in 0..STACKSATSCRIPT_ROUNDS {
             // --- Round Step 1: SubNibbles --- COMPLETELY REDESIGNED
             // Generate one script that performs the entire SubNibbles operation
-
-            // A script that:
-            // 1. Duplicates all 64 state nibbles to the top of the stack
-            // 2. Substitutes each with the S-box value in one operation
-
-            let mut subnibbles_script = script!();
-
-            // For each state nibble, duplicate it to the top
-            for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-                // Calculate position: start from capacity, then go to absorbed
-                let state_depth = (STACKSATSCRIPT_STATE_NIBBLES - 1 - i + 16) as u32; // +16 for S-box
-                subnibbles_script = script!(
-                    {subnibbles_script}
-                    {state_depth} OP_PICK
-                );
-            }
-
-            // Execute the nibble duplication
-            stack.custom(
-                subnibbles_script,
-                STACKSATSCRIPT_STATE_NIBBLES as u32,
-                true,
-                0,
-                &format!("duplicate_state_r{}", r),
-            );
-
             // Now perform S-box substitution on each nibble
-            let mut sbox_script = script!();
 
             for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-                // For each state value (now at the top of the stack),
-                // perform S-box substitution
-
-                // Calculate S-box table position:
-                //   15 - value + (64 - i) + 16
-                // Where:
-                // - 15 - value: PRESENT S-box index calculation (inverted)
-                // - (64 - i): offset for state values on stack
-                // - 16: S-box position after state
-                sbox_script = script!(
-                    {sbox_script}
-                    // Calculate S-box index
-                    <15> OP_SWAP OP_SUB
-                    // Calculate depth to find S-box entry
-                    <(STACKSATSCRIPT_STATE_NIBBLES - i + 16) as u32> OP_ADD
-                    // Get S-box value
-                    OP_PICK
-                );
-            }
-
-            // Execute the S-box substitution
-            stack.custom(
-                sbox_script,
-                STACKSATSCRIPT_STATE_NIBBLES as u32,
-                true,
-                0,
-                &format!("sbox_r{}", r),
-            );
-
-            // Define substituted values
-            let mut sboxed_vars = Vec::with_capacity(STACKSATSCRIPT_STATE_NIBBLES);
-            for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-                sboxed_vars.push(stack.define(1, &format!("sbox_r{}_{}", r, i)));
+                stack.number(15);
+                let var_to_move = stack.get_var(STACKSATSCRIPT_STATE_NIBBLES as u32);
+                stack.move_var(var_to_move);
+                stack.op_sub();
+                stack.number((STACKSATSCRIPT_STATE_NIBBLES - 1) as u32);
+                stack.op_add();
+                let var = stack.op_pick();
+                stack.rename(var, &format!("sbox_r{}_{}", r, i));
             }
 
             // --- Round Step 2: PermuteNibbles --- IMPROVED

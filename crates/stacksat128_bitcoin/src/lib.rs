@@ -353,7 +353,7 @@ fn stacksat128(
                     let idx3 = ((r_idx + 3) % 8) * 8 + c_idx;
 
                     // Calculate depths based on how many mixed values we've already pushed
-                    let items_already_mixed =  r_idx * 8 + c_idx;
+                    let items_already_mixed = r_idx * 8 + c_idx;
                     let depth_adj = items_already_mixed;
 
                     // Adjust depths for the stack position
@@ -408,12 +408,14 @@ fn stacksat128(
             }
 
             // Execute mix script
-            let mixed_vars: Vec<StackVariable> = stack.custom_ex(
-                mix_script,
-                0,
-                output_vars,
-                0,
-            );
+            stack.custom_ex(mix_script, 0, output_vars, 0);
+
+            // Remove old state
+            for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+                let var_to_remove = stack.get_var(STACKSATSCRIPT_STATE_NIBBLES as u32);
+                let var = stack.move_var(var_to_remove);
+                stack.drop(var);
+            }
 
             // --- Round Step 4: AddConstant --- SIMPLIFIED
             // Add round constant to the last nibble
@@ -439,52 +441,10 @@ fn stacksat128(
                 &format!("add_const_r{}", r),
             );
 
-            // Define the round-constant-added result
-            let const_added = stack.define(1, &format!("const_r{}", r));
-
-            // --- Cleanup Phase --- COMPLETE REDESIGN
-            // The stack now has:
-            //   msg state_original sbox state_duplicated sbox_results permuted mixed const_added
-            // We need to clean up intermediate results and keep only:
-            //   msg mixed[0..62] const_added sbox
-
-            // Count items to be removed
-            let originals_to_drop = STACKSATSCRIPT_STATE_NIBBLES; // Original state
-            let duplicated_to_drop = STACKSATSCRIPT_STATE_NIBBLES; // Duplicated for S-box
-            let sboxed_to_drop = STACKSATSCRIPT_STATE_NIBBLES; // After S-box
-            let permuted_to_drop = STACKSATSCRIPT_STATE_NIBBLES; // After permutation
-            let _mixed_to_preserve = STACKSATSCRIPT_STATE_NIBBLES - 1; // All except last mixed value
-            let _const_to_preserve = 1; // Const-added value
-
-            // Construct cleanup script
-            let mut cleanup_script = script!();
-
-            // First, preserve the S-box by moving it to the top of the stack
-            for i in 0..16 {
-                let sbox_depth = STACKSATSCRIPT_STATE_NIBBLES * 4 + 16 + i;
-                cleanup_script = script!(
-                    {cleanup_script}
-                    {sbox_depth as u32} OP_PICK
-                );
-            }
-
-            // Then drop all intermediate values (original state, duplicated, sboxed, permuted)
-            // We want to keep the mixed values and const_added result
-            for _ in 0..(originals_to_drop + duplicated_to_drop + sboxed_to_drop + permuted_to_drop)
-            {
-                cleanup_script = script!(
-                    {cleanup_script}
-                    OP_DROP
-                );
-            }
-
-            // Execute cleanup script
-            stack.custom(cleanup_script, 16, true, 0, &format!("cleanup_r{}", r));
-
-            // Update state_vars for next round
             let mut next_state_vars = Vec::with_capacity(STACKSATSCRIPT_STATE_NIBBLES);
-            next_state_vars.extend_from_slice(&mixed_vars[0..STACKSATSCRIPT_STATE_NIBBLES - 1]);
-            next_state_vars.push(const_added);
+            for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
+                next_state_vars.push(stack.get_var((64 - i - 1) as u32));
+            }
             state_vars = next_state_vars;
         } // End of rounds loop
     } // End of blocks loop
@@ -497,18 +457,14 @@ fn stacksat128(
     }
 
     // --- 4. Finalize ---
-    // At this point, the stack has: msg_vars state_vars sbox_table
+    // At this point, the stack has: msg_vars sbox_table state_vars
     // Drop the S-box table as it's no longer needed
 
-    let drop_sbox_script = script!(
-        // Drop all 16 entries of the S-box
-        for _ in 0..16 {
-            OP_DROP
-        }
-    );
-
-    // Execute the script
-    stack.custom(drop_sbox_script, 16, true, 0, "drop_sbox");
+    for _ in 0..16 {
+        let var_to_remove = stack.get_var(STACKSATSCRIPT_STATE_NIBBLES as u32);
+        let var = stack.move_var(var_to_remove);
+        stack.drop(var);
+    }
 
     // The final hash is now on the stack ready for verification
     // We don't need to do anything else with it

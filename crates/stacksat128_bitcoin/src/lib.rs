@@ -344,8 +344,8 @@ fn stacksat128(
             let mut mix_script = script!();
 
             // For each position in the state
-            for c_idx in 0..8 {
-                for r_idx in 0..8 {
+            for r_idx in 0..8 {
+                for c_idx in 0..8 {
                     // Calculate indices for the four nibbles to add in this position
                     let idx0 = r_idx * 8 + c_idx;
                     let idx1 = ((r_idx + 1) % 8) * 8 + c_idx;
@@ -353,7 +353,7 @@ fn stacksat128(
                     let idx3 = ((r_idx + 3) % 8) * 8 + c_idx;
 
                     // Calculate depths based on how many mixed values we've already pushed
-                    let items_already_mixed = 8 * r_idx + c_idx;
+                    let items_already_mixed =  r_idx * 8 + c_idx;
                     let depth_adj = items_already_mixed;
 
                     // Adjust depths for the stack position
@@ -365,14 +365,11 @@ fn stacksat128(
                     // Build script for this position
                     mix_script = script!(
                         {mix_script}
-                        // Pick the four values
+                        // Pick two first values
                         {depth0 as u32} OP_PICK
                         {depth1 as u32 + 1} OP_PICK
-                        {depth2 as u32 + 2} OP_PICK
-                        {depth3 as u32 + 3} OP_PICK
-
                         // Add them all together modulo 16
-                        // First add p2+p3
+                        // First add p0+p1
                         OP_ADD
                         <16> OP_2DUP OP_GREATERTHANOREQUAL
                         OP_IF
@@ -381,8 +378,11 @@ fn stacksat128(
                             OP_DROP
                         OP_ENDIF
 
-                        // Then add p0+p1
-                        OP_SWAP OP_ROT OP_ADD
+                        // Pick two last values
+                        {depth2 as u32 + 1} OP_PICK
+                        {depth3 as u32 + 2} OP_PICK
+                        // Then add p2+p3
+                        OP_ADD
                         <16> OP_2DUP OP_GREATERTHANOREQUAL
                         OP_IF
                             OP_SUB
@@ -402,20 +402,18 @@ fn stacksat128(
                 }
             }
 
-            // Execute mix script
-            stack.custom(
-                mix_script,
-                STACKSATSCRIPT_STATE_NIBBLES as u32,
-                true,
-                0,
-                &format!("mix_r{}", r),
-            );
-
-            // Define mixed values
-            let mut mixed_vars = Vec::with_capacity(STACKSATSCRIPT_STATE_NIBBLES);
+            let mut output_vars = Vec::with_capacity(STACKSATSCRIPT_STATE_NIBBLES);
             for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-                mixed_vars.push(stack.define(1, &format!("mix_r{}_{}", r, i)));
+                output_vars.push((1, format!("mix_r{}_{}", r, i)));
             }
+
+            // Execute mix script
+            let mixed_vars: Vec<StackVariable> = stack.custom_ex(
+                mix_script,
+                0,
+                output_vars,
+                0,
+            );
 
             // --- Round Step 4: AddConstant --- SIMPLIFIED
             // Add round constant to the last nibble

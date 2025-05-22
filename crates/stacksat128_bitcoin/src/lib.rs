@@ -119,15 +119,13 @@ fn stacksat128(
     let msg_nibbles_count = msg_len * 2;
     let mut message_vars: Vec<StackVariable> = Vec::new();
 
-    let padded_nibbes = [
-        0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0,
-        15, 1, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
-        13, 14, 14, 15, 15, 0, 0,
-    ];
+    // let padded_nibbes = [
+    //     0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0,
+    //     15, 1, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
+    //     13, 14, 14, 15, 15, 0, 0,
+    // ];
     for i in 0..msg_nibbles_count as usize {
-        let current_nibble_var = stack.number(padded_nibbes[i]);
-        stack.rename(current_nibble_var, &format!("msg_nibble_{}", i));
-        message_vars.push(current_nibble_var);
+        message_vars.push(stack.define(1, &format!("msg_nibble_{}", i)));
     }
 
     // 1.2 Apply padding (multi-rate 10*1 padding)
@@ -459,8 +457,7 @@ fn stacksat128(
     // --- 4. Finalize ---
     // At this point, the stack has: msg_vars sbox_table state_vars
     // Drop the S-box table as it's no longer needed
-
-    for _ in 0..16 {
+    for _ in 0..(message_vars.len() + 1) {
         let var_to_remove = stack.get_var(STACKSATSCRIPT_STATE_NIBBLES as u32);
         let var = stack.move_var(var_to_remove);
         stack.drop(var);
@@ -604,13 +601,13 @@ mod tests {
 
         // Step 2: Execute push + compute without verification first to isolate issues
         println!("\nExecuting push + compute script (without verification)...");
-        // let mut script_bytes = push_script.compile().to_bytes();
-        // script_bytes.extend(compute_script.compile().to_bytes());
-        let mut script_bytes = compute_script.compile().to_bytes();
-        let script_no_verify = ScriptBuf::from_bytes(script_bytes.clone());
+        let mut script_bytes = push_script.compile().to_bytes();
+        script_bytes.extend(compute_script.compile().to_bytes());
+        script_bytes.extend(verify_script.compile().to_bytes());
+        let exec_script = ScriptBuf::from_bytes(script_bytes.clone());
 
         // Try with explicit try/catch to get detailed error information
-        let result_compute = execute_script_buf(script_no_verify);
+        let result_compute = execute_script_buf(exec_script);
         println!("Result compute: {:?}", result_compute);
         assert!(result_compute.success, "Compute script failed");
 

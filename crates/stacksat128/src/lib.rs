@@ -122,7 +122,6 @@ fn round(st: &mut [u8; STATE_NIBBLES], r: usize) {
         }
     }
 
-
     // --- 4. Round Constant Addition ---------------------------------------
     // Script: Get RC[r] (e.g., push const), get st[63] (e.g. OP_PICK), call add16 sub-script, store result.
     st[STATE_NIBBLES - 1] = add16(st[STATE_NIBBLES - 1], RC[r]);
@@ -150,7 +149,6 @@ pub fn stacksat_hash(msg: &[u8]) -> [u8; DIGEST_BYTES] {
     }
     // Pad takes ownership and returns the padded vector
     let padded_nibbles = pad(v);
-    println!("Padded nibbles: {:?}", padded_nibbles);
 
     // --- 2. Initialise State ---
     let mut st = [0u8; STATE_NIBBLES]; // All zeros IV

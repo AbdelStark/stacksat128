@@ -303,13 +303,13 @@ fn stacksat128(stack: &mut StackTracker, msg_len: u32, define_var: bool, _use_fu
                 // Where:
                 // - 15 - value: PRESENT S-box index calculation (inverted)
                 // - 63: offset for state values on stack
-                stack.number(15);
+                stack.number(15); // Push 15
                 let var_to_move = stack.get_var(STACKSATSCRIPT_STATE_NIBBLES as u32);
-                stack.move_var(var_to_move);
-                stack.op_sub();
-                stack.number((STACKSATSCRIPT_STATE_NIBBLES - 1) as u32);
-                stack.op_add();
-                let var = stack.op_pick();
+                stack.move_var(var_to_move); // Move the state value to the top of the stack
+                stack.op_sub(); // 15 - value
+                stack.number((STACKSATSCRIPT_STATE_NIBBLES - 1) as u32); // Push 63
+                stack.op_add(); // 15 - value + 63
+                let var = stack.op_pick(); // Pick the sbox value
                 stack.rename(var, &format!("sbox_r{}_{}", r, i));
             }
 

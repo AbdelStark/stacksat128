@@ -1,0 +1,1936 @@
+>>> Entering section: STACKSAT-128 Hash Computation
+  Input message: [97, 98, 99]
+  Message length: 3 bytes
+  >>> Entering section: Message to Nibbles Conversion
+    Byte  0: 61 -> Nibbles: 61
+    Byte  1: 62 -> Nibbles: 62
+    Byte  2: 63 -> Nibbles: 63
+    Total nibbles before padding: 6
+  <<< Exiting section: Message to Nibbles Conversion
+  >>> Entering section: Padding
+    Input nibbles: [616263]
+    Input length: 6 nibbles
+    Added 0x8 padding marker
+    Added 24 zero nibbles
+    Added 0x1 terminator nibble
+    Final padded length: 32 nibbles
+    Number of blocks: 1
+    Padded nibbles: [61626380 00000000 00000000 00000001]
+  <<< Exiting section: Padding
+  >>> Entering section: State Initialization
+    Initial state (all zeros): [00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000]
+    State as grid:
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+
+  <<< Exiting section: State Initialization
+  >>> Entering section: Absorb Phase
+    >>> Entering section: Processing Block 0
+      Block 0 nibbles: [61626380 00000000 00000000 00000001]
+      >>> Entering section: Absorbing
+        st[ 0] += block[ 0]: 0 + 6 = 6
+        st[ 1] += block[ 1]: 0 + 1 = 1
+        st[ 2] += block[ 2]: 0 + 6 = 6
+        st[ 3] += block[ 3]: 0 + 2 = 2
+        ...
+        st[28] += block[28]: 0 + 0 = 0
+        st[29] += block[29]: 0 + 0 = 0
+        st[30] += block[30]: 0 + 0 = 0
+        st[31] += block[31]: 0 + 1 = 1
+        State after absorption: [61626380 00000000 00000000 00000001 00000000 00000000 00000000 00000000]
+        State as grid:
+6 1 6 2 6 3 8 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 1 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+
+      <<< Exiting section: Absorbing
+      >>> Entering section: Round 0
+        Initial state: [61626380 00000000 00000000 00000001 00000000 00000000 00000000 00000000]
+        State as grid:
+6 1 6 2 6 3 8 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 1 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 6 -> a
+          st[ 1]: 1 -> 5
+          st[ 2]: 6 -> a
+          st[ 3]: 2 -> 6
+          ...
+          st[60]: 0 -> c
+          st[61]: 0 -> c
+          st[62]: 0 -> c
+          st[63]: 0 -> c
+          After S-box: [a5a6ab3c cccccccc cccccccc ccccccc5 cccccccc cccccccc cccccccc cccccccc]
+          State as grid:
+a 5 a 6 a b 3 c 
+c c c c c c c c 
+c c c c c c c c 
+c c c c c c c 5 
+c c c c c c c c 
+c c c c c c c c 
+c c c c c c c c 
+c c c c c c c c 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): a
+          st[ 1](0,1) -> dest[ 1](0,1): 5
+          st[ 2](0,2) -> dest[ 2](0,2): a
+          st[ 3](0,3) -> dest[ 3](0,3): 6
+          ...
+          st[60](7,4) -> dest[61](7,5): c
+          st[61](7,5) -> dest[62](7,6): c
+          st[62](7,6) -> dest[63](7,7): c
+          st[63](7,7) -> dest[56](7,0): c
+          After Row Rotation: [a5a6ab3c cccccccc cccccccc cccc5ccc cccccccc cccccccc cccccccc cccccccc]
+          State as grid:
+a 5 a 6 a b 3 c 
+c c c c c c c c 
+c c c c c c c c 
+c c c c 5 c c c 
+c c c c c c c c 
+c c c c c c c c 
+c c c c c c c c 
+c c c c c c c c 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): a
+          perm[ 1](0,1) -> trans[ 8](1,0): 5
+          perm[ 2](0,2) -> trans[16](2,0): a
+          perm[ 3](0,3) -> trans[24](3,0): 6
+          ...
+          perm[60](7,4) -> trans[39](4,7): c
+          perm[61](7,5) -> trans[47](5,7): c
+          perm[62](7,6) -> trans[55](6,7): c
+          perm[63](7,7) -> trans[63](7,7): c
+          After Matrix Transpose: [accccccc 5ccccccc accccccc 6ccccccc acc5cccc bccccccc 3ccccccc cccccccc]
+          State as grid:
+a c c c c c c c 
+5 c c c c c c c 
+a c c c c c c c 
+6 c c c c c c c 
+a c c 5 c c c c 
+b c c c c c c c 
+3 c c c c c c c 
+c c c c c c c c 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=a + prev[8]=5 + prev[16]=a + prev[24]=6 = f
+          Mix col 0, row 1: prev[8]=5 + prev[16]=a + prev[24]=6 + prev[32]=a = f
+          Mix col 0, row 2: prev[16]=a + prev[24]=6 + prev[32]=a + prev[40]=b = 5
+          Mix col 0, row 3: prev[24]=6 + prev[32]=a + prev[40]=b + prev[48]=3 = e
+          ...
+          Mix col 7, row 4: prev[39]=c + prev[47]=c + prev[55]=c + prev[63]=c = 0
+          Mix col 7, row 5: prev[47]=c + prev[55]=c + prev[63]=c + prev[7]=c = 0
+          Mix col 7, row 6: prev[55]=c + prev[63]=c + prev[7]=c + prev[15]=c = 0
+          Mix col 7, row 7: prev[63]=c + prev[7]=c + prev[15]=c + prev[23]=c = 0
+          After Column Mixing: [f0000000 f0090000 50090000 e0090000 40090000 40000000 e0000000 50000000]
+          State as grid:
+f 0 0 0 0 0 0 0 
+f 0 0 9 0 0 0 0 
+5 0 0 9 0 0 0 0 
+e 0 0 9 0 0 0 0 
+4 0 0 9 0 0 0 0 
+4 0 0 0 0 0 0 0 
+e 0 0 0 0 0 0 0 
+5 0 0 0 0 0 0 0 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 0 + 1 = 1
+          After Round Constant Addition: [f0000000 f0090000 50090000 e0090000 40090000 40000000 e0000000 50000001]
+          State as grid:
+f 0 0 0 0 0 0 0 
+f 0 0 9 0 0 0 0 
+5 0 0 9 0 0 0 0 
+e 0 0 9 0 0 0 0 
+4 0 0 9 0 0 0 0 
+4 0 0 0 0 0 0 0 
+e 0 0 0 0 0 0 0 
+5 0 0 0 0 0 0 1 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 0
+      >>> Entering section: Round 1
+        Initial state: [f0000000 f0090000 50090000 e0090000 40090000 40000000 e0000000 50000001]
+        State as grid:
+f 0 0 0 0 0 0 0 
+f 0 0 9 0 0 0 0 
+5 0 0 9 0 0 0 0 
+e 0 0 9 0 0 0 0 
+4 0 0 9 0 0 0 0 
+4 0 0 0 0 0 0 0 
+e 0 0 0 0 0 0 0 
+5 0 0 0 0 0 0 1 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: f -> 2
+          st[ 1]: 0 -> c
+          st[ 2]: 0 -> c
+          st[ 3]: 0 -> c
+          ...
+          st[60]: 0 -> c
+          st[61]: 0 -> c
+          st[62]: 0 -> c
+          st[63]: 1 -> 5
+          After S-box: [2ccccccc 2ccecccc 0ccecccc 1ccecccc 9ccecccc 9ccccccc 1ccccccc 0cccccc5]
+          State as grid:
+2 c c c c c c c 
+2 c c e c c c c 
+0 c c e c c c c 
+1 c c e c c c c 
+9 c c e c c c c 
+9 c c c c c c c 
+1 c c c c c c c 
+0 c c c c c c 5 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 2
+          st[ 1](0,1) -> dest[ 1](0,1): c
+          st[ 2](0,2) -> dest[ 2](0,2): c
+          st[ 3](0,3) -> dest[ 3](0,3): c
+          ...
+          st[60](7,4) -> dest[61](7,5): c
+          st[61](7,5) -> dest[62](7,6): c
+          st[62](7,6) -> dest[63](7,7): c
+          st[63](7,7) -> dest[56](7,0): 5
+          After Row Rotation: [2ccccccc ccecccc2 cecccc0c ecccc1cc cccc9cce ccc9cccc cc1ccccc 50cccccc]
+          State as grid:
+2 c c c c c c c 
+c c e c c c c 2 
+c e c c c c 0 c 
+e c c c c 1 c c 
+c c c c 9 c c e 
+c c c 9 c c c c 
+c c 1 c c c c c 
+5 0 c c c c c c 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 2
+          perm[ 1](0,1) -> trans[ 8](1,0): c
+          perm[ 2](0,2) -> trans[16](2,0): c
+          perm[ 3](0,3) -> trans[24](3,0): c
+          ...
+          perm[60](7,4) -> trans[39](4,7): c
+          perm[61](7,5) -> trans[47](5,7): c
+          perm[62](7,6) -> trans[55](6,7): c
+          perm[63](7,7) -> trans[63](7,7): c
+          After Matrix Transpose: [2cceccc5 ccecccc0 cecccc1c ccccc9cc cccc9ccc ccc1cccc cc0ccccc c2cceccc]
+          State as grid:
+2 c c e c c c 5 
+c c e c c c c 0 
+c e c c c c 1 c 
+c c c c c 9 c c 
+c c c c 9 c c c 
+c c c 1 c c c c 
+c c 0 c c c c c 
+c 2 c c e c c c 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=2 + prev[8]=c + prev[16]=c + prev[24]=c = 6
+          Mix col 0, row 1: prev[8]=c + prev[16]=c + prev[24]=c + prev[32]=c = 0
+          Mix col 0, row 2: prev[16]=c + prev[24]=c + prev[32]=c + prev[40]=c = 0
+          Mix col 0, row 3: prev[24]=c + prev[32]=c + prev[40]=c + prev[48]=c = 0
+          ...
+          Mix col 7, row 4: prev[39]=c + prev[47]=c + prev[55]=c + prev[63]=c = 0
+          Mix col 7, row 5: prev[47]=c + prev[55]=c + prev[63]=c + prev[7]=5 = 9
+          Mix col 7, row 6: prev[55]=c + prev[63]=c + prev[7]=5 + prev[15]=0 = d
+          Mix col 7, row 7: prev[63]=c + prev[7]=5 + prev[15]=0 + prev[23]=c = d
+          After Column Mixing: [62220d5d 0220dd54 0205dd50 0045dd00 0645f000 66472009 6662200d 6822205d]
+          State as grid:
+6 2 2 2 0 d 5 d 
+0 2 2 0 d d 5 4 
+0 2 0 5 d d 5 0 
+0 0 4 5 d d 0 0 
+0 6 4 5 f 0 0 0 
+6 6 4 7 2 0 0 9 
+6 6 6 2 2 0 0 d 
+6 8 2 2 2 0 5 d 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: d + 8 = 5
+          After Round Constant Addition: [62220d5d 0220dd54 0205dd50 0045dd00 0645f000 66472009 6662200d 68222055]
+          State as grid:
+6 2 2 2 0 d 5 d 
+0 2 2 0 d d 5 4 
+0 2 0 5 d d 5 0 
+0 0 4 5 d d 0 0 
+0 6 4 5 f 0 0 0 
+6 6 4 7 2 0 0 9 
+6 6 6 2 2 0 0 d 
+6 8 2 2 2 0 5 5 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 1
+      >>> Entering section: Round 2
+        Initial state: [62220d5d 0220dd54 0205dd50 0045dd00 0645f000 66472009 6662200d 68222055]
+        State as grid:
+6 2 2 2 0 d 5 d 
+0 2 2 0 d d 5 4 
+0 2 0 5 d d 5 0 
+0 0 4 5 d d 0 0 
+0 6 4 5 f 0 0 0 
+6 6 4 7 2 0 0 9 
+6 6 6 2 2 0 0 d 
+6 8 2 2 2 0 5 5 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 6 -> a
+          st[ 1]: 2 -> 6
+          st[ 2]: 2 -> 6
+          st[ 3]: 2 -> 6
+          ...
+          st[60]: 2 -> 6
+          st[61]: 0 -> c
+          st[62]: 5 -> 0
+          st[63]: 5 -> 0
+          After S-box: [a666c707 c66c7709 c6c0770c cc9077cc ca902ccc aa9d6cce aaa66cc7 a3666c00]
+          State as grid:
+a 6 6 6 c 7 0 7 
+c 6 6 c 7 7 0 9 
+c 6 c 0 7 7 0 c 
+c c 9 0 7 7 c c 
+c a 9 0 2 c c c 
+a a 9 d 6 c c e 
+a a a 6 6 c c 7 
+a 3 6 6 6 c 0 0 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): a
+          st[ 1](0,1) -> dest[ 1](0,1): 6
+          st[ 2](0,2) -> dest[ 2](0,2): 6
+          st[ 3](0,3) -> dest[ 3](0,3): 6
+          ...
+          st[60](7,4) -> dest[61](7,5): 6
+          st[61](7,5) -> dest[62](7,6): c
+          st[62](7,6) -> dest[63](7,7): 0
+          st[63](7,7) -> dest[56](7,0): 0
+          After Row Rotation: [a666c707 66c7709c c0770cc6 077cccc9 2cccca90 cceaa9d6 c7aaa66c 0a3666c0]
+          State as grid:
+a 6 6 6 c 7 0 7 
+6 6 c 7 7 0 9 c 
+c 0 7 7 0 c c 6 
+0 7 7 c c c c 9 
+2 c c c c a 9 0 
+c c e a a 9 d 6 
+c 7 a a a 6 6 c 
+0 a 3 6 6 6 c 0 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): a
+          perm[ 1](0,1) -> trans[ 8](1,0): 6
+          perm[ 2](0,2) -> trans[16](2,0): 6
+          perm[ 3](0,3) -> trans[24](3,0): 6
+          ...
+          perm[60](7,4) -> trans[39](4,7): 6
+          perm[61](7,5) -> trans[47](5,7): 6
+          perm[62](7,6) -> trans[55](6,7): c
+          perm[63](7,7) -> trans[63](7,7): 0
+          After Matrix Transpose: [a6c02cc0 6607cc7a 6c77cea3 677ccaa6 c70ccaa6 70cca966 09cc9d6c 7c6906c0]
+          State as grid:
+a 6 c 0 2 c c 0 
+6 6 0 7 c c 7 a 
+6 c 7 7 c e a 3 
+6 7 7 c c a a 6 
+c 7 0 c c a a 6 
+7 0 c c a 9 6 6 
+0 9 c c 9 d 6 c 
+7 c 6 9 0 6 c 0 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=a + prev[8]=6 + prev[16]=6 + prev[24]=6 = c
+          Mix col 0, row 1: prev[8]=6 + prev[16]=6 + prev[24]=6 + prev[32]=c = e
+          Mix col 0, row 2: prev[16]=6 + prev[24]=6 + prev[32]=c + prev[40]=7 = f
+          Mix col 0, row 3: prev[24]=6 + prev[32]=c + prev[40]=7 + prev[48]=0 = 9
+          ...
+          Mix col 7, row 4: prev[39]=6 + prev[47]=6 + prev[55]=c + prev[63]=0 = 8
+          Mix col 7, row 5: prev[47]=6 + prev[55]=c + prev[63]=0 + prev[7]=0 = 2
+          Mix col 7, row 6: prev[55]=c + prev[63]=0 + prev[7]=0 + prev[15]=a = 6
+          Mix col 7, row 7: prev[63]=0 + prev[7]=0 + prev[15]=a + prev[23]=3 = d
+          After Column Mixing: [cfaa6073 e0e60e59 faabeb45 97f0ba0e acedf628 8ba15842 71ec7b56 d497ac9d]
+          State as grid:
+c f a a 6 0 7 3 
+e 0 e 6 0 e 5 9 
+f a a b e b 4 5 
+9 7 f 0 b a 0 e 
+a c e d f 6 2 8 
+8 b a 1 5 8 4 2 
+7 1 e c 7 b 5 6 
+d 4 9 7 a c 9 d 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: d + c = 9
+          After Round Constant Addition: [cfaa6073 e0e60e59 faabeb45 97f0ba0e acedf628 8ba15842 71ec7b56 d497ac99]
+          State as grid:
+c f a a 6 0 7 3 
+e 0 e 6 0 e 5 9 
+f a a b e b 4 5 
+9 7 f 0 b a 0 e 
+a c e d f 6 2 8 
+8 b a 1 5 8 4 2 
+7 1 e c 7 b 5 6 
+d 4 9 7 a c 9 9 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 2
+      >>> Entering section: Round 3
+        Initial state: [cfaa6073 e0e60e59 faabeb45 97f0ba0e acedf628 8ba15842 71ec7b56 d497ac99]
+        State as grid:
+c f a a 6 0 7 3 
+e 0 e 6 0 e 5 9 
+f a a b e b 4 5 
+9 7 f 0 b a 0 e 
+a c e d f 6 2 8 
+8 b a 1 5 8 4 2 
+7 1 e c 7 b 5 6 
+d 4 9 7 a c 9 9 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: c -> 4
+          st[ 1]: f -> 2
+          st[ 2]: a -> f
+          st[ 3]: a -> f
+          ...
+          st[60]: a -> f
+          st[61]: c -> 4
+          st[62]: 9 -> e
+          st[63]: 9 -> e
+          After S-box: [42ffacdb 1c1ac10e 2ff81890 ed2c8fc1 f4172a63 38f50396 d514d80a 79edf4ee]
+          State as grid:
+4 2 f f a c d b 
+1 c 1 a c 1 0 e 
+2 f f 8 1 8 9 0 
+e d 2 c 8 f c 1 
+f 4 1 7 2 a 6 3 
+3 8 f 5 0 3 9 6 
+d 5 1 4 d 8 0 a 
+7 9 e d f 4 e e 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 4
+          st[ 1](0,1) -> dest[ 1](0,1): 2
+          st[ 2](0,2) -> dest[ 2](0,2): f
+          st[ 3](0,3) -> dest[ 3](0,3): f
+          ...
+          st[60](7,4) -> dest[61](7,5): f
+          st[61](7,5) -> dest[62](7,6): 4
+          st[62](7,6) -> dest[63](7,7): e
+          st[63](7,7) -> dest[56](7,0): e
+          After Row Rotation: [42ffacdb c1ac10e1 f818902f c8fc1ed2 2a63f417 39638f50 0ad514d8 e79edf4e]
+          State as grid:
+4 2 f f a c d b 
+c 1 a c 1 0 e 1 
+f 8 1 8 9 0 2 f 
+c 8 f c 1 e d 2 
+2 a 6 3 f 4 1 7 
+3 9 6 3 8 f 5 0 
+0 a d 5 1 4 d 8 
+e 7 9 e d f 4 e 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 4
+          perm[ 1](0,1) -> trans[ 8](1,0): 2
+          perm[ 2](0,2) -> trans[16](2,0): f
+          perm[ 3](0,3) -> trans[24](3,0): f
+          ...
+          perm[60](7,4) -> trans[39](4,7): d
+          perm[61](7,5) -> trans[47](5,7): f
+          perm[62](7,6) -> trans[55](6,7): 4
+          perm[63](7,7) -> trans[63](7,7): e
+          After Matrix Transpose: [4cfc230e 2188a9a7 fa1f66d9 fc8c335e a191f81d c00e4f4f de2d15d4 b1f2708e]
+          State as grid:
+4 c f c 2 3 0 e 
+2 1 8 8 a 9 a 7 
+f a 1 f 6 6 d 9 
+f c 8 c 3 3 5 e 
+a 1 9 1 f 8 1 d 
+c 0 0 e 4 f 4 f 
+d e 2 d 1 5 d 4 
+b 1 f 2 7 0 8 e 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=4 + prev[8]=2 + prev[16]=f + prev[24]=f = 4
+          Mix col 0, row 1: prev[8]=2 + prev[16]=f + prev[24]=f + prev[32]=a = a
+          Mix col 0, row 2: prev[16]=f + prev[24]=f + prev[32]=a + prev[40]=c = 4
+          Mix col 0, row 3: prev[24]=f + prev[32]=a + prev[40]=c + prev[48]=d = 2
+          ...
+          Mix col 7, row 4: prev[39]=d + prev[47]=f + prev[55]=4 + prev[63]=e = e
+          Mix col 7, row 5: prev[47]=f + prev[55]=4 + prev[63]=e + prev[7]=e = f
+          Mix col 7, row 6: prev[55]=4 + prev[63]=e + prev[7]=e + prev[15]=7 = 7
+          Mix col 7, row 7: prev[63]=e + prev[7]=e + prev[15]=7 + prev[23]=9 = c
+          After Column Mixing: [430f55cc a8a42adb 472ac073 2b387f7e e0aebcae 8b09e79f ec8341f7 087592fc]
+          State as grid:
+4 3 0 f 5 5 c c 
+a 8 a 4 2 a d b 
+4 7 2 a c 0 7 3 
+2 b 3 8 7 f 7 e 
+e 0 a e b c a e 
+8 b 0 9 e 7 9 f 
+e c 8 3 4 1 f 7 
+0 8 7 5 9 2 f c 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: c + e = a
+          After Round Constant Addition: [430f55cc a8a42adb 472ac073 2b387f7e e0aebcae 8b09e79f ec8341f7 087592fa]
+          State as grid:
+4 3 0 f 5 5 c c 
+a 8 a 4 2 a d b 
+4 7 2 a c 0 7 3 
+2 b 3 8 7 f 7 e 
+e 0 a e b c a e 
+8 b 0 9 e 7 9 f 
+e c 8 3 4 1 f 7 
+0 8 7 5 9 2 f a 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 3
+      >>> Entering section: Round 4
+        Initial state: [430f55cc a8a42adb 472ac073 2b387f7e e0aebcae 8b09e79f ec8341f7 087592fa]
+        State as grid:
+4 3 0 f 5 5 c c 
+a 8 a 4 2 a d b 
+4 7 2 a c 0 7 3 
+2 b 3 8 7 f 7 e 
+e 0 a e b c a e 
+8 b 0 9 e 7 9 f 
+e c 8 3 4 1 f 7 
+0 8 7 5 9 2 f a 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 4 -> 9
+          st[ 1]: 3 -> b
+          st[ 2]: 0 -> c
+          st[ 3]: f -> 2
+          ...
+          st[60]: 9 -> e
+          st[61]: 2 -> 6
+          st[62]: f -> 2
+          st[63]: a -> f
+          After S-box: [9bc20044 f3f96f78 9d6f4cdb 68b3d2d1 1cf184f1 38ce1de2 143b952d c3d0e62f]
+          State as grid:
+9 b c 2 0 0 4 4 
+f 3 f 9 6 f 7 8 
+9 d 6 f 4 c d b 
+6 8 b 3 d 2 d 1 
+1 c f 1 8 4 f 1 
+3 8 c e 1 d e 2 
+1 4 3 b 9 5 2 d 
+c 3 d 0 e 6 2 f 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 9
+          st[ 1](0,1) -> dest[ 1](0,1): b
+          st[ 2](0,2) -> dest[ 2](0,2): c
+          st[ 3](0,3) -> dest[ 3](0,3): 2
+          ...
+          st[60](7,4) -> dest[61](7,5): e
+          st[61](7,5) -> dest[62](7,6): 6
+          st[62](7,6) -> dest[63](7,7): 2
+          st[63](7,7) -> dest[56](7,0): f
+          After Row Rotation: [9bc20044 3f96f78f 6f4cdb9d 3d2d168b 84f11cf1 de238ce1 2d143b95 fc3d0e62]
+          State as grid:
+9 b c 2 0 0 4 4 
+3 f 9 6 f 7 8 f 
+6 f 4 c d b 9 d 
+3 d 2 d 1 6 8 b 
+8 4 f 1 1 c f 1 
+d e 2 3 8 c e 1 
+2 d 1 4 3 b 9 5 
+f c 3 d 0 e 6 2 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 9
+          perm[ 1](0,1) -> trans[ 8](1,0): b
+          perm[ 2](0,2) -> trans[16](2,0): c
+          perm[ 3](0,3) -> trans[24](3,0): 2
+          ...
+          perm[60](7,4) -> trans[39](4,7): 0
+          perm[61](7,5) -> trans[47](5,7): e
+          perm[62](7,6) -> trans[55](6,7): 6
+          perm[63](7,7) -> trans[63](7,7): 2
+          After Matrix Transpose: [93638d2f bffd4edc c942f213 26cd134d 0fd11830 07b6ccbe 4898fe96 4fdb1152]
+          State as grid:
+9 3 6 3 8 d 2 f 
+b f f d 4 e d c 
+c 9 4 2 f 2 1 3 
+2 6 c d 1 3 4 d 
+0 f d 1 1 8 3 0 
+0 7 b 6 c c b e 
+4 8 9 8 f e 9 6 
+4 f d b 1 1 5 2 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=9 + prev[8]=b + prev[16]=c + prev[24]=2 = 2
+          Mix col 0, row 1: prev[8]=b + prev[16]=c + prev[24]=2 + prev[32]=0 = 9
+          Mix col 0, row 2: prev[16]=c + prev[24]=2 + prev[32]=0 + prev[40]=0 = e
+          Mix col 0, row 3: prev[24]=2 + prev[32]=0 + prev[40]=0 + prev[48]=4 = 6
+          ...
+          Mix col 7, row 4: prev[39]=0 + prev[47]=e + prev[55]=6 + prev[63]=2 = 6
+          Mix col 7, row 5: prev[47]=e + prev[55]=6 + prev[63]=2 + prev[7]=f = 5
+          Mix col 7, row 6: prev[55]=6 + prev[63]=2 + prev[7]=f + prev[15]=c = 3
+          Mix col 7, row 7: prev[63]=2 + prev[7]=f + prev[15]=c + prev[23]=3 = 0
+          After Column Mixing: [215fc04b 9dcd5b5c e586d93e 64dcd5b1 8dead3c6 117c48b5 c9b3cad3 4a6dce50]
+          State as grid:
+2 1 5 f c 0 4 b 
+9 d c d 5 b 5 c 
+e 5 8 6 d 9 3 e 
+6 4 d c d 5 b 1 
+8 d e a d 3 c 6 
+1 1 7 c 4 8 b 5 
+c 9 b 3 c a d 3 
+4 a 6 d c e 5 0 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 0 + f = f
+          After Round Constant Addition: [215fc04b 9dcd5b5c e586d93e 64dcd5b1 8dead3c6 117c48b5 c9b3cad3 4a6dce5f]
+          State as grid:
+2 1 5 f c 0 4 b 
+9 d c d 5 b 5 c 
+e 5 8 6 d 9 3 e 
+6 4 d c d 5 b 1 
+8 d e a d 3 c 6 
+1 1 7 c 4 8 b 5 
+c 9 b 3 c a d 3 
+4 a 6 d c e 5 f 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 4
+      >>> Entering section: Round 5
+        Initial state: [215fc04b 9dcd5b5c e586d93e 64dcd5b1 8dead3c6 117c48b5 c9b3cad3 4a6dce5f]
+        State as grid:
+2 1 5 f c 0 4 b 
+9 d c d 5 b 5 c 
+e 5 8 6 d 9 3 e 
+6 4 d c d 5 b 1 
+8 d e a d 3 c 6 
+1 1 7 c 4 8 b 5 
+c 9 b 3 c a d 3 
+4 a 6 d c e 5 f 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 2 -> 6
+          st[ 1]: 1 -> 5
+          st[ 2]: 5 -> 0
+          st[ 3]: f -> 2
+          ...
+          st[60]: c -> 4
+          st[61]: e -> 1
+          st[62]: 5 -> 0
+          st[63]: f -> 2
+          After S-box: [65024c98 e7470804 103a7eb1 a9747085 371f7b4a 55d49380 4e8b4f7b 9fa74102]
+          State as grid:
+6 5 0 2 4 c 9 8 
+e 7 4 7 0 8 0 4 
+1 0 3 a 7 e b 1 
+a 9 7 4 7 0 8 5 
+3 7 1 f 7 b 4 a 
+5 5 d 4 9 3 8 0 
+4 e 8 b 4 f 7 b 
+9 f a 7 4 1 0 2 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 6
+          st[ 1](0,1) -> dest[ 1](0,1): 5
+          st[ 2](0,2) -> dest[ 2](0,2): 0
+          st[ 3](0,3) -> dest[ 3](0,3): 2
+          ...
+          st[60](7,4) -> dest[61](7,5): 4
+          st[61](7,5) -> dest[62](7,6): 1
+          st[62](7,6) -> dest[63](7,7): 0
+          st[63](7,7) -> dest[56](7,0): 2
+          After Row Rotation: [65024c98 7470804e 3a7eb110 47085a97 7b4a371f 38055d49 7b4e8b4f 29fa7410]
+          State as grid:
+6 5 0 2 4 c 9 8 
+7 4 7 0 8 0 4 e 
+3 a 7 e b 1 1 0 
+4 7 0 8 5 a 9 7 
+7 b 4 a 3 7 1 f 
+3 8 0 5 5 d 4 9 
+7 b 4 e 8 b 4 f 
+2 9 f a 7 4 1 0 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 6
+          perm[ 1](0,1) -> trans[ 8](1,0): 5
+          perm[ 2](0,2) -> trans[16](2,0): 0
+          perm[ 3](0,3) -> trans[24](3,0): 2
+          ...
+          perm[60](7,4) -> trans[39](4,7): 7
+          perm[61](7,5) -> trans[47](5,7): 4
+          perm[62](7,6) -> trans[55](6,7): 1
+          perm[63](7,7) -> trans[63](7,7): 0
+          After Matrix Transpose: [67347372 54a7b8b9 0770404f 20e8a5ea 48b53587 c01a7db4 94191441 8e07f9f0]
+          State as grid:
+6 7 3 4 7 3 7 2 
+5 4 a 7 b 8 b 9 
+0 7 7 0 4 0 4 f 
+2 0 e 8 a 5 e a 
+4 8 b 5 3 5 8 7 
+c 0 1 a 7 d b 4 
+9 4 1 9 1 4 4 1 
+8 e 0 7 f 9 f 0 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=6 + prev[8]=5 + prev[16]=0 + prev[24]=2 = d
+          Mix col 0, row 1: prev[8]=5 + prev[16]=0 + prev[24]=2 + prev[32]=4 = b
+          Mix col 0, row 2: prev[16]=0 + prev[24]=2 + prev[32]=4 + prev[40]=c = 2
+          Mix col 0, row 3: prev[24]=2 + prev[32]=4 + prev[40]=c + prev[48]=9 = b
+          ...
+          Mix col 7, row 4: prev[39]=7 + prev[47]=4 + prev[55]=1 + prev[63]=0 = c
+          Mix col 7, row 5: prev[47]=4 + prev[55]=1 + prev[63]=0 + prev[7]=2 = 7
+          Mix col 7, row 6: prev[55]=1 + prev[63]=0 + prev[7]=2 + prev[15]=9 = c
+          Mix col 7, row 7: prev[63]=0 + prev[7]=2 + prev[15]=9 + prev[23]=f = a
+          After Column Mixing: [d2230044 b3a4c259 2f178754 bcb05b56 1adfaf6c 395eed57 cdeb285c 3042545a]
+          State as grid:
+d 2 2 3 0 0 4 4 
+b 3 a 4 c 2 5 9 
+2 f 1 7 8 7 5 4 
+b c b 0 5 b 5 6 
+1 a d f a f 6 c 
+3 9 5 e e d 5 7 
+c d e b 2 8 5 c 
+3 0 4 2 5 4 5 a 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: a + 7 = 1
+          After Round Constant Addition: [d2230044 b3a4c259 2f178754 bcb05b56 1adfaf6c 395eed57 cdeb285c 30425451]
+          State as grid:
+d 2 2 3 0 0 4 4 
+b 3 a 4 c 2 5 9 
+2 f 1 7 8 7 5 4 
+b c b 0 5 b 5 6 
+1 a d f a f 6 c 
+3 9 5 e e d 5 7 
+c d e b 2 8 5 c 
+3 0 4 2 5 4 5 1 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 5
+      >>> Entering section: Round 6
+        Initial state: [d2230044 b3a4c259 2f178754 bcb05b56 1adfaf6c 395eed57 cdeb285c 30425451]
+        State as grid:
+d 2 2 3 0 0 4 4 
+b 3 a 4 c 2 5 9 
+2 f 1 7 8 7 5 4 
+b c b 0 5 b 5 6 
+1 a d f a f 6 c 
+3 9 5 e e d 5 7 
+c d e b 2 8 5 c 
+3 0 4 2 5 4 5 1 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: d -> 7
+          st[ 1]: 2 -> 6
+          st[ 2]: 2 -> 6
+          st[ 3]: 3 -> b
+          ...
+          st[60]: 5 -> 0
+          st[61]: 4 -> 9
+          st[62]: 5 -> 0
+          st[63]: 1 -> 5
+          After S-box: [766bcc99 8bf9460e 625d3d09 848c080a 5f72f2a4 be01170d 47186304 bc960905]
+          State as grid:
+7 6 6 b c c 9 9 
+8 b f 9 4 6 0 e 
+6 2 5 d 3 d 0 9 
+8 4 8 c 0 8 0 a 
+5 f 7 2 f 2 a 4 
+b e 0 1 1 7 0 d 
+4 7 1 8 6 3 0 4 
+b c 9 6 0 9 0 5 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 7
+          st[ 1](0,1) -> dest[ 1](0,1): 6
+          st[ 2](0,2) -> dest[ 2](0,2): 6
+          st[ 3](0,3) -> dest[ 3](0,3): b
+          ...
+          st[60](7,4) -> dest[61](7,5): 0
+          st[61](7,5) -> dest[62](7,6): 9
+          st[62](7,6) -> dest[63](7,7): 0
+          st[63](7,7) -> dest[56](7,0): 5
+          After Row Rotation: [766bcc99 bf9460e8 5d3d0962 c080a848 f2a45f72 70dbe011 04471863 5bc96090]
+          State as grid:
+7 6 6 b c c 9 9 
+b f 9 4 6 0 e 8 
+5 d 3 d 0 9 6 2 
+c 0 8 0 a 8 4 8 
+f 2 a 4 5 f 7 2 
+7 0 d b e 0 1 1 
+0 4 4 7 1 8 6 3 
+5 b c 9 6 0 9 0 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 7
+          perm[ 1](0,1) -> trans[ 8](1,0): 6
+          perm[ 2](0,2) -> trans[16](2,0): 6
+          perm[ 3](0,3) -> trans[24](3,0): b
+          ...
+          perm[60](7,4) -> trans[39](4,7): 6
+          perm[61](7,5) -> trans[47](5,7): 0
+          perm[62](7,6) -> trans[55](6,7): 9
+          perm[63](7,7) -> trans[63](7,7): 0
+          After Matrix Transpose: [7b5cf705 6fd0204b 6938ad4c b4d04b79 c60a5e16 c098f080 9e647169 98282130]
+          State as grid:
+7 b 5 c f 7 0 5 
+6 f d 0 2 0 4 b 
+6 9 3 8 a d 4 c 
+b 4 d 0 4 b 7 9 
+c 6 0 a 5 e 1 6 
+c 0 9 8 f 0 8 0 
+9 e 6 4 7 1 6 9 
+9 8 2 8 2 1 3 0 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=7 + prev[8]=6 + prev[16]=6 + prev[24]=b = e
+          Mix col 0, row 1: prev[8]=6 + prev[16]=6 + prev[24]=b + prev[32]=c = 3
+          Mix col 0, row 2: prev[16]=6 + prev[24]=b + prev[32]=c + prev[40]=c = 9
+          Mix col 0, row 3: prev[24]=b + prev[32]=c + prev[40]=c + prev[48]=9 = c
+          ...
+          Mix col 7, row 4: prev[39]=6 + prev[47]=0 + prev[55]=9 + prev[63]=0 = f
+          Mix col 7, row 5: prev[47]=0 + prev[55]=9 + prev[63]=0 + prev[7]=5 = e
+          Mix col 7, row 6: prev[55]=9 + prev[63]=0 + prev[7]=5 + prev[15]=b = 9
+          Mix col 7, row 7: prev[63]=0 + prev[7]=5 + prev[15]=b + prev[23]=c = c
+          After Column Mixing: [e724fff5 32d25606 939a264b c8c6fa68 ac1ed02f 5160791e f0a8a9d9 cb7cd5bc]
+          State as grid:
+e 7 2 4 f f f 5 
+3 2 d 2 5 6 0 6 
+9 3 9 a 2 6 4 b 
+c 8 c 6 f a 6 8 
+a c 1 e d 0 2 f 
+5 1 6 0 7 9 1 e 
+f 0 a 8 a 9 d 9 
+c b 7 c d 5 b c 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: c + b = 7
+          After Round Constant Addition: [e724fff5 32d25606 939a264b c8c6fa68 ac1ed02f 5160791e f0a8a9d9 cb7cd5b7]
+          State as grid:
+e 7 2 4 f f f 5 
+3 2 d 2 5 6 0 6 
+9 3 9 a 2 6 4 b 
+c 8 c 6 f a 6 8 
+a c 1 e d 0 2 f 
+5 1 6 0 7 9 1 e 
+f 0 a 8 a 9 d 9 
+c b 7 c d 5 b 7 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 6
+      >>> Entering section: Round 7
+        Initial state: [e724fff5 32d25606 939a264b c8c6fa68 ac1ed02f 5160791e f0a8a9d9 cb7cd5b7]
+        State as grid:
+e 7 2 4 f f f 5 
+3 2 d 2 5 6 0 6 
+9 3 9 a 2 6 4 b 
+c 8 c 6 f a 6 8 
+a c 1 e d 0 2 f 
+5 1 6 0 7 9 1 e 
+f 0 a 8 a 9 d 9 
+c b 7 c d 5 b 7 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: e -> 1
+          st[ 1]: 7 -> d
+          st[ 2]: 2 -> 6
+          st[ 3]: 4 -> 9
+          ...
+          st[60]: d -> 7
+          st[61]: 5 -> 0
+          st[62]: b -> 8
+          st[63]: 7 -> d
+          After S-box: [1d692220 b6760aca ebef6a98 434a2fa3 f4517c62 05acde51 2cf3fe7e 48d4708d]
+          State as grid:
+1 d 6 9 2 2 2 0 
+b 6 7 6 0 a c a 
+e b e f 6 a 9 8 
+4 3 4 a 2 f a 3 
+f 4 5 1 7 c 6 2 
+0 5 a c d e 5 1 
+2 c f 3 f e 7 e 
+4 8 d 4 7 0 8 d 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 1
+          st[ 1](0,1) -> dest[ 1](0,1): d
+          st[ 2](0,2) -> dest[ 2](0,2): 6
+          st[ 3](0,3) -> dest[ 3](0,3): 9
+          ...
+          st[60](7,4) -> dest[61](7,5): 7
+          st[61](7,5) -> dest[62](7,6): 0
+          st[62](7,6) -> dest[63](7,7): 8
+          st[63](7,7) -> dest[56](7,0): d
+          After Row Rotation: [1d692220 6760acab ef6a98eb a2fa3434 7c62f451 e5105acd 7e2cf3fe d48d4708]
+          State as grid:
+1 d 6 9 2 2 2 0 
+6 7 6 0 a c a b 
+e f 6 a 9 8 e b 
+a 2 f a 3 4 3 4 
+7 c 6 2 f 4 5 1 
+e 5 1 0 5 a c d 
+7 e 2 c f 3 f e 
+d 4 8 d 4 7 0 8 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 1
+          perm[ 1](0,1) -> trans[ 8](1,0): d
+          perm[ 2](0,2) -> trans[16](2,0): 6
+          perm[ 3](0,3) -> trans[24](3,0): 9
+          ...
+          perm[60](7,4) -> trans[39](4,7): 4
+          perm[61](7,5) -> trans[47](5,7): 7
+          perm[62](7,6) -> trans[55](6,7): 0
+          perm[63](7,7) -> trans[63](7,7): 8
+          After Matrix Transpose: [16ea7e7d d7f2c5e4 666f6128 90aa20cd 2a93f5f4 2c844a37 2ae35cf0 0bb41de8]
+          State as grid:
+1 6 e a 7 e 7 d 
+d 7 f 2 c 5 e 4 
+6 6 6 f 6 1 2 8 
+9 0 a a 2 0 c d 
+2 a 9 3 f 5 f 4 
+2 c 8 4 4 a 3 7 
+2 a e 3 5 c f 0 
+0 b b 4 1 d e 8 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=1 + prev[8]=d + prev[16]=6 + prev[24]=9 = d
+          Mix col 0, row 1: prev[8]=d + prev[16]=6 + prev[24]=9 + prev[32]=2 = e
+          Mix col 0, row 2: prev[16]=6 + prev[24]=9 + prev[32]=2 + prev[40]=2 = 3
+          Mix col 0, row 3: prev[24]=9 + prev[32]=2 + prev[40]=2 + prev[48]=2 = f
+          ...
+          Mix col 7, row 4: prev[39]=4 + prev[47]=7 + prev[55]=0 + prev[63]=8 = 3
+          Mix col 7, row 5: prev[47]=7 + prev[55]=0 + prev[63]=8 + prev[7]=d = c
+          Mix col 7, row 6: prev[55]=0 + prev[63]=8 + prev[7]=d + prev[15]=4 = 9
+          Mix col 7, row 7: prev[63]=8 + prev[7]=d + prev[15]=4 + prev[23]=8 = 1
+          After Column Mixing: [d3d5b436 e78e3bbd 3c10b000 f094abd8 6bae98f3 57f5117c 02639c29 4eefa151]
+          State as grid:
+d 3 d 5 b 4 3 6 
+e 7 8 e 3 b b d 
+3 c 1 0 b 0 0 0 
+f 0 9 4 a b d 8 
+6 b a e 9 8 f 3 
+5 7 f 5 1 1 7 c 
+0 2 6 3 9 c 2 9 
+4 e e f a 1 5 1 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 1 + 5 = 6
+          After Round Constant Addition: [d3d5b436 e78e3bbd 3c10b000 f094abd8 6bae98f3 57f5117c 02639c29 4eefa156]
+          State as grid:
+d 3 d 5 b 4 3 6 
+e 7 8 e 3 b b d 
+3 c 1 0 b 0 0 0 
+f 0 9 4 a b d 8 
+6 b a e 9 8 f 3 
+5 7 f 5 1 1 7 c 
+0 2 6 3 9 c 2 9 
+4 e e f a 1 5 6 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 7
+      >>> Entering section: Round 8
+        Initial state: [d3d5b436 e78e3bbd 3c10b000 f094abd8 6bae98f3 57f5117c 02639c29 4eefa156]
+        State as grid:
+d 3 d 5 b 4 3 6 
+e 7 8 e 3 b b d 
+3 c 1 0 b 0 0 0 
+f 0 9 4 a b d 8 
+6 b a e 9 8 f 3 
+5 7 f 5 1 1 7 c 
+0 2 6 3 9 c 2 9 
+4 e e f a 1 5 6 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: d -> 7
+          st[ 1]: 3 -> b
+          st[ 2]: d -> 7
+          st[ 3]: 5 -> 0
+          ...
+          st[60]: a -> f
+          st[61]: 1 -> 5
+          st[62]: 5 -> 0
+          st[63]: 6 -> a
+          After S-box: [7b7089ba 1d31b887 b45c8ccc 2ce9f873 a8f1e32b 0d2055d4 c6abe46e 9112f50a]
+          State as grid:
+7 b 7 0 8 9 b a 
+1 d 3 1 b 8 8 7 
+b 4 5 c 8 c c c 
+2 c e 9 f 8 7 3 
+a 8 f 1 e 3 2 b 
+0 d 2 0 5 5 d 4 
+c 6 a b e 4 6 e 
+9 1 1 2 f 5 0 a 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 7
+          st[ 1](0,1) -> dest[ 1](0,1): b
+          st[ 2](0,2) -> dest[ 2](0,2): 7
+          st[ 3](0,3) -> dest[ 3](0,3): 0
+          ...
+          st[60](7,4) -> dest[61](7,5): f
+          st[61](7,5) -> dest[62](7,6): 5
+          st[62](7,6) -> dest[63](7,7): 0
+          st[63](7,7) -> dest[56](7,0): a
+          After Row Rotation: [7b7089ba d31b8871 5c8cccb4 9f8732ce e32ba8f1 5d40d205 6ec6abe4 a9112f50]
+          State as grid:
+7 b 7 0 8 9 b a 
+d 3 1 b 8 8 7 1 
+5 c 8 c c c b 4 
+9 f 8 7 3 2 c e 
+e 3 2 b a 8 f 1 
+5 d 4 0 d 2 0 5 
+6 e c 6 a b e 4 
+a 9 1 1 2 f 5 0 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 7
+          perm[ 1](0,1) -> trans[ 8](1,0): b
+          perm[ 2](0,2) -> trans[16](2,0): 7
+          perm[ 3](0,3) -> trans[24](3,0): 0
+          ...
+          perm[60](7,4) -> trans[39](4,7): 2
+          perm[61](7,5) -> trans[47](5,7): f
+          perm[62](7,6) -> trans[55](6,7): 5
+          perm[63](7,7) -> trans[63](7,7): 0
+          After Matrix Transpose: [7d59e56a b3cf3de9 718824c1 0bc7b061 88c3ada2 98c282bf b7bcf0e5 a14e1540]
+          State as grid:
+7 d 5 9 e 5 6 a 
+b 3 c f 3 d e 9 
+7 1 8 8 2 4 c 1 
+0 b c 7 b 0 6 1 
+8 8 c 3 a d a 2 
+9 8 c 2 8 2 b f 
+b 7 b c f 0 e 5 
+a 1 4 e 1 5 4 0 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=7 + prev[8]=b + prev[16]=7 + prev[24]=0 = 9
+          Mix col 0, row 1: prev[8]=b + prev[16]=7 + prev[24]=0 + prev[32]=8 = a
+          Mix col 0, row 2: prev[16]=7 + prev[24]=0 + prev[32]=8 + prev[40]=9 = 8
+          Mix col 0, row 3: prev[24]=0 + prev[32]=8 + prev[40]=9 + prev[48]=b = c
+          ...
+          Mix col 7, row 4: prev[39]=2 + prev[47]=f + prev[55]=5 + prev[63]=0 = 6
+          Mix col 7, row 5: prev[47]=f + prev[55]=5 + prev[63]=0 + prev[7]=a = e
+          Mix col 7, row 6: prev[55]=5 + prev[63]=0 + prev[7]=a + prev[15]=9 = 8
+          Mix col 7, row 7: prev[63]=0 + prev[7]=a + prev[15]=9 + prev[23]=1 = 4
+          After Column Mixing: [9c57e665 a7c1aead 8cc4f373 c2f8cf97 687f2476 5d056c3e 78021768 32de4b44]
+          State as grid:
+9 c 5 7 e 6 6 5 
+a 7 c 1 a e a d 
+8 c c 4 f 3 7 3 
+c 2 f 8 c f 9 7 
+6 8 7 f 2 4 7 6 
+5 d 0 5 6 c 3 e 
+7 8 0 2 1 7 6 8 
+3 2 d e 4 b 4 4 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 4 + a = e
+          After Round Constant Addition: [9c57e665 a7c1aead 8cc4f373 c2f8cf97 687f2476 5d056c3e 78021768 32de4b4e]
+          State as grid:
+9 c 5 7 e 6 6 5 
+a 7 c 1 a e a d 
+8 c c 4 f 3 7 3 
+c 2 f 8 c f 9 7 
+6 8 7 f 2 4 7 6 
+5 d 0 5 6 c 3 e 
+7 8 0 2 1 7 6 8 
+3 2 d e 4 b 4 e 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 8
+      >>> Entering section: Round 9
+        Initial state: [9c57e665 a7c1aead 8cc4f373 c2f8cf97 687f2476 5d056c3e 78021768 32de4b4e]
+        State as grid:
+9 c 5 7 e 6 6 5 
+a 7 c 1 a e a d 
+8 c c 4 f 3 7 3 
+c 2 f 8 c f 9 7 
+6 8 7 f 2 4 7 6 
+5 d 0 5 6 c 3 e 
+7 8 0 2 1 7 6 8 
+3 2 d e 4 b 4 e 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 9 -> e
+          st[ 1]: c -> 4
+          st[ 2]: 5 -> 0
+          st[ 3]: 7 -> d
+          ...
+          st[60]: 4 -> 9
+          st[61]: b -> 8
+          st[62]: 4 -> 9
+          st[63]: e -> 1
+          After S-box: [e40d1aa0 fd45f1f7 34492bdb 462342ed a3d269da 07c0a4b1 d3c65da3 b6719891]
+          State as grid:
+e 4 0 d 1 a a 0 
+f d 4 5 f 1 f 7 
+3 4 4 9 2 b d b 
+4 6 2 3 4 2 e d 
+a 3 d 2 6 9 d a 
+0 7 c 0 a 4 b 1 
+d 3 c 6 5 d a 3 
+b 6 7 1 9 8 9 1 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): e
+          st[ 1](0,1) -> dest[ 1](0,1): 4
+          st[ 2](0,2) -> dest[ 2](0,2): 0
+          st[ 3](0,3) -> dest[ 3](0,3): d
+          ...
+          st[60](7,4) -> dest[61](7,5): 9
+          st[61](7,5) -> dest[62](7,6): 8
+          st[62](7,6) -> dest[63](7,7): 9
+          st[63](7,7) -> dest[56](7,0): 1
+          After Row Rotation: [e40d1aa0 d45f1f7f 492bdb34 342ed462 69daa3d2 4b107c0a a3d3c65d 1b671989]
+          State as grid:
+e 4 0 d 1 a a 0 
+d 4 5 f 1 f 7 f 
+4 9 2 b d b 3 4 
+3 4 2 e d 4 6 2 
+6 9 d a a 3 d 2 
+4 b 1 0 7 c 0 a 
+a 3 d 3 c 6 5 d 
+1 b 6 7 1 9 8 9 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): e
+          perm[ 1](0,1) -> trans[ 8](1,0): 4
+          perm[ 2](0,2) -> trans[16](2,0): 0
+          perm[ 3](0,3) -> trans[24](3,0): d
+          ...
+          perm[60](7,4) -> trans[39](4,7): 1
+          perm[61](7,5) -> trans[47](5,7): 9
+          perm[62](7,6) -> trans[55](6,7): 8
+          perm[63](7,7) -> trans[63](7,7): 9
+          After Matrix Transpose: [ed4364a1 44949b3b 0522d1d6 dfbea037 11dda7c1 afb43c69 a736d058 0f422ad9]
+          State as grid:
+e d 4 3 6 4 a 1 
+4 4 9 4 9 b 3 b 
+0 5 2 2 d 1 d 6 
+d f b e a 0 3 7 
+1 1 d d a 7 c 1 
+a f b 4 3 c 6 9 
+a 7 3 6 d 0 5 8 
+0 f 4 2 2 a d 9 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=e + prev[8]=4 + prev[16]=0 + prev[24]=d = f
+          Mix col 0, row 1: prev[8]=4 + prev[16]=0 + prev[24]=d + prev[32]=1 = 2
+          Mix col 0, row 2: prev[16]=0 + prev[24]=d + prev[32]=1 + prev[40]=a = 8
+          Mix col 0, row 3: prev[24]=d + prev[32]=1 + prev[40]=a + prev[48]=a = 2
+          ...
+          Mix col 7, row 4: prev[39]=1 + prev[47]=9 + prev[55]=8 + prev[63]=9 = b
+          Mix col 7, row 5: prev[47]=9 + prev[55]=8 + prev[63]=9 + prev[7]=1 = b
+          Mix col 7, row 6: prev[55]=8 + prev[63]=9 + prev[7]=1 + prev[15]=b = d
+          Mix col 7, row 7: prev[63]=9 + prev[7]=1 + prev[15]=b + prev[23]=6 = b
+          After Column Mixing: [f5a760d9 2931a3f9 84514427 266543a9 56f9cd4b 226f8a2b c74fe9fd 253bea7b]
+          State as grid:
+f 5 a 7 6 0 d 9 
+2 9 3 1 a 3 f 9 
+8 4 5 1 4 4 2 7 
+2 6 6 5 4 3 a 9 
+5 6 f 9 c d 4 b 
+2 2 6 f 8 a 2 b 
+c 7 4 f e 9 f d 
+2 5 3 b e a 7 b 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: b + d = 8
+          After Round Constant Addition: [f5a760d9 2931a3f9 84514427 266543a9 56f9cd4b 226f8a2b c74fe9fd 253bea78]
+          State as grid:
+f 5 a 7 6 0 d 9 
+2 9 3 1 a 3 f 9 
+8 4 5 1 4 4 2 7 
+2 6 6 5 4 3 a 9 
+5 6 f 9 c d 4 b 
+2 2 6 f 8 a 2 b 
+c 7 4 f e 9 f d 
+2 5 3 b e a 7 8 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 9
+      >>> Entering section: Round 10
+        Initial state: [f5a760d9 2931a3f9 84514427 266543a9 56f9cd4b 226f8a2b c74fe9fd 253bea78]
+        State as grid:
+f 5 a 7 6 0 d 9 
+2 9 3 1 a 3 f 9 
+8 4 5 1 4 4 2 7 
+2 6 6 5 4 3 a 9 
+5 6 f 9 c d 4 b 
+2 2 6 f 8 a 2 b 
+c 7 4 f e 9 f d 
+2 5 3 b e a 7 8 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: f -> 2
+          st[ 1]: 5 -> 0
+          st[ 2]: a -> f
+          st[ 3]: 7 -> d
+          ...
+          st[60]: e -> 1
+          st[61]: a -> f
+          st[62]: 7 -> d
+          st[63]: 8 -> 3
+          After S-box: [20fdac7e 6eb5fb2e 3905996d 6aa09bfe 0a2e4798 66a23f68 4d921e27 60b81fd3]
+          State as grid:
+2 0 f d a c 7 e 
+6 e b 5 f b 2 e 
+3 9 0 5 9 9 6 d 
+6 a a 0 9 b f e 
+0 a 2 e 4 7 9 8 
+6 6 a 2 3 f 6 8 
+4 d 9 2 1 e 2 7 
+6 0 b 8 1 f d 3 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 2
+          st[ 1](0,1) -> dest[ 1](0,1): 0
+          st[ 2](0,2) -> dest[ 2](0,2): f
+          st[ 3](0,3) -> dest[ 3](0,3): d
+          ...
+          st[60](7,4) -> dest[61](7,5): 1
+          st[61](7,5) -> dest[62](7,6): f
+          st[62](7,6) -> dest[63](7,7): d
+          st[63](7,7) -> dest[56](7,0): 3
+          After Row Rotation: [20fdac7e eb5fb2e6 05996d39 09bfe6aa 47980a2e f6866a23 274d921e 360b81fd]
+          State as grid:
+2 0 f d a c 7 e 
+e b 5 f b 2 e 6 
+0 5 9 9 6 d 3 9 
+0 9 b f e 6 a a 
+4 7 9 8 0 a 2 e 
+f 6 8 6 6 a 2 3 
+2 7 4 d 9 2 1 e 
+3 6 0 b 8 1 f d 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 2
+          perm[ 1](0,1) -> trans[ 8](1,0): 0
+          perm[ 2](0,2) -> trans[16](2,0): f
+          perm[ 3](0,3) -> trans[24](3,0): d
+          ...
+          perm[60](7,4) -> trans[39](4,7): 8
+          perm[61](7,5) -> trans[47](5,7): 1
+          perm[62](7,6) -> trans[55](6,7): f
+          perm[63](7,7) -> trans[63](7,7): d
+          After Matrix Transpose: [2e004f23 0b597676 f59b9840 df9f86db ab6e0698 c2d6aa21 7e3a221f e69ae3ed]
+          State as grid:
+2 e 0 0 4 f 2 3 
+0 b 5 9 7 6 7 6 
+f 5 9 b 9 8 4 0 
+d f 9 f 8 6 d b 
+a b 6 e 0 6 9 8 
+c 2 d 6 a a 2 1 
+7 e 3 a 2 2 1 f 
+e 6 9 a e 3 e d 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=2 + prev[8]=0 + prev[16]=f + prev[24]=d = e
+          Mix col 0, row 1: prev[8]=0 + prev[16]=f + prev[24]=d + prev[32]=a = 6
+          Mix col 0, row 2: prev[16]=f + prev[24]=d + prev[32]=a + prev[40]=c = 2
+          Mix col 0, row 3: prev[24]=d + prev[32]=a + prev[40]=c + prev[48]=7 = a
+          ...
+          Mix col 7, row 4: prev[39]=8 + prev[47]=1 + prev[55]=f + prev[63]=d = 5
+          Mix col 7, row 5: prev[47]=1 + prev[55]=f + prev[63]=d + prev[7]=3 = 0
+          Mix col 7, row 6: prev[55]=f + prev[63]=d + prev[7]=3 + prev[15]=6 = 5
+          Mix col 7, row 7: prev[63]=d + prev[7]=3 + prev[15]=6 + prev[23]=0 = 6
+          After Column Mixing: [ed73c3a4 6ad18a19 215ebec4 aafd4893 b1f8a5a5 349aee30 7d1dba85 f47e20b6]
+          State as grid:
+e d 7 3 c 3 a 4 
+6 a d 1 8 a 1 9 
+2 1 5 e b e c 4 
+a a f d 4 8 9 3 
+b 1 f 8 a 5 a 5 
+3 4 9 a e e 3 0 
+7 d 1 d b a 8 5 
+f 4 7 e 2 0 b 6 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 6 + 6 = c
+          After Round Constant Addition: [ed73c3a4 6ad18a19 215ebec4 aafd4893 b1f8a5a5 349aee30 7d1dba85 f47e20bc]
+          State as grid:
+e d 7 3 c 3 a 4 
+6 a d 1 8 a 1 9 
+2 1 5 e b e c 4 
+a a f d 4 8 9 3 
+b 1 f 8 a 5 a 5 
+3 4 9 a e e 3 0 
+7 d 1 d b a 8 5 
+f 4 7 e 2 0 b c 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 10
+      >>> Entering section: Round 11
+        Initial state: [ed73c3a4 6ad18a19 215ebec4 aafd4893 b1f8a5a5 349aee30 7d1dba85 f47e20bc]
+        State as grid:
+e d 7 3 c 3 a 4 
+6 a d 1 8 a 1 9 
+2 1 5 e b e c 4 
+a a f d 4 8 9 3 
+b 1 f 8 a 5 a 5 
+3 4 9 a e e 3 0 
+7 d 1 d b a 8 5 
+f 4 7 e 2 0 b c 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: e -> 1
+          st[ 1]: d -> 7
+          st[ 2]: 7 -> d
+          st[ 3]: 3 -> b
+          ...
+          st[60]: 2 -> 6
+          st[61]: 0 -> c
+          st[62]: b -> 8
+          st[63]: c -> 4
+          After S-box: [17db4bf9 af753f5e 65018149 ff2793eb 8523f0f0 b9ef11bc d7578f30 29d16c84]
+          State as grid:
+1 7 d b 4 b f 9 
+a f 7 5 3 f 5 e 
+6 5 0 1 8 1 4 9 
+f f 2 7 9 3 e b 
+8 5 2 3 f 0 f 0 
+b 9 e f 1 1 b c 
+d 7 5 7 8 f 3 0 
+2 9 d 1 6 c 8 4 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 1
+          st[ 1](0,1) -> dest[ 1](0,1): 7
+          st[ 2](0,2) -> dest[ 2](0,2): d
+          st[ 3](0,3) -> dest[ 3](0,3): b
+          ...
+          st[60](7,4) -> dest[61](7,5): 6
+          st[61](7,5) -> dest[62](7,6): c
+          st[62](7,6) -> dest[63](7,7): 8
+          st[63](7,7) -> dest[56](7,0): 4
+          After Row Rotation: [17db4bf9 f753f5ea 01814965 793ebff2 f0f08523 1bcb9ef1 30d7578f 429d16c8]
+          State as grid:
+1 7 d b 4 b f 9 
+f 7 5 3 f 5 e a 
+0 1 8 1 4 9 6 5 
+7 9 3 e b f f 2 
+f 0 f 0 8 5 2 3 
+1 b c b 9 e f 1 
+3 0 d 7 5 7 8 f 
+4 2 9 d 1 6 c 8 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 1
+          perm[ 1](0,1) -> trans[ 8](1,0): 7
+          perm[ 2](0,2) -> trans[16](2,0): d
+          perm[ 3](0,3) -> trans[24](3,0): b
+          ...
+          perm[60](7,4) -> trans[39](4,7): 1
+          perm[61](7,5) -> trans[47](5,7): 6
+          perm[62](7,6) -> trans[55](6,7): c
+          perm[63](7,7) -> trans[63](7,7): 8
+          After Matrix Transpose: [1f07f134 77190b02 d583fcd9 b31e0b7d 4f4b8951 b59f5e76 fe6f2f8c 9a5231f8]
+          State as grid:
+1 f 0 7 f 1 3 4 
+7 7 1 9 0 b 0 2 
+d 5 8 3 f c d 9 
+b 3 1 e 0 b 7 d 
+4 f 4 b 8 9 5 1 
+b 5 9 f 5 e 7 6 
+f e 6 f 2 f 8 c 
+9 a 5 2 3 1 f 8 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=1 + prev[8]=7 + prev[16]=d + prev[24]=b = 0
+          Mix col 0, row 1: prev[8]=7 + prev[16]=d + prev[24]=b + prev[32]=4 = 3
+          Mix col 0, row 2: prev[16]=d + prev[24]=b + prev[32]=4 + prev[40]=b = 7
+          Mix col 0, row 3: prev[24]=b + prev[32]=4 + prev[40]=b + prev[48]=f = 9
+          ...
+          Mix col 7, row 4: prev[39]=1 + prev[47]=6 + prev[55]=c + prev[63]=8 = b
+          Mix col 7, row 5: prev[47]=6 + prev[55]=c + prev[63]=8 + prev[7]=4 = e
+          Mix col 7, row 6: prev[55]=c + prev[63]=8 + prev[7]=4 + prev[15]=2 = a
+          Mix col 7, row 7: prev[63]=8 + prev[7]=4 + prev[15]=2 + prev[23]=9 = 7
+          After Column Mixing: [0ea1e37c 3ee57b99 7c6bce0d 9547f1b0 7c8b273b 4c479f1e 0ec14caa e5e519f7]
+          State as grid:
+0 e a 1 e 3 7 c 
+3 e e 5 7 b 9 9 
+7 c 6 b c e 0 d 
+9 5 4 7 f 1 b 0 
+7 c 8 b 2 7 3 b 
+4 c 4 7 9 f 1 e 
+0 e c 1 4 c a a 
+e 5 e 5 1 9 f 7 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 7 + 3 = a
+          After Round Constant Addition: [0ea1e37c 3ee57b99 7c6bce0d 9547f1b0 7c8b273b 4c479f1e 0ec14caa e5e519fa]
+          State as grid:
+0 e a 1 e 3 7 c 
+3 e e 5 7 b 9 9 
+7 c 6 b c e 0 d 
+9 5 4 7 f 1 b 0 
+7 c 8 b 2 7 3 b 
+4 c 4 7 9 f 1 e 
+0 e c 1 4 c a a 
+e 5 e 5 1 9 f a 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 11
+      >>> Entering section: Round 12
+        Initial state: [0ea1e37c 3ee57b99 7c6bce0d 9547f1b0 7c8b273b 4c479f1e 0ec14caa e5e519fa]
+        State as grid:
+0 e a 1 e 3 7 c 
+3 e e 5 7 b 9 9 
+7 c 6 b c e 0 d 
+9 5 4 7 f 1 b 0 
+7 c 8 b 2 7 3 b 
+4 c 4 7 9 f 1 e 
+0 e c 1 4 c a a 
+e 5 e 5 1 9 f a 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 0 -> c
+          st[ 1]: e -> 1
+          st[ 2]: a -> f
+          st[ 3]: 1 -> 5
+          ...
+          st[60]: 1 -> 5
+          st[61]: 9 -> e
+          st[62]: f -> 2
+          st[63]: a -> f
+          After S-box: [c1f51bd4 b110d8ee d4a841c7 e09d258c d4386db8 949de251 c14594ff 10105e2f]
+          State as grid:
+c 1 f 5 1 b d 4 
+b 1 1 0 d 8 e e 
+d 4 a 8 4 1 c 7 
+e 0 9 d 2 5 8 c 
+d 4 3 8 6 d b 8 
+9 4 9 d e 2 5 1 
+c 1 4 5 9 4 f f 
+1 0 1 0 5 e 2 f 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): c
+          st[ 1](0,1) -> dest[ 1](0,1): 1
+          st[ 2](0,2) -> dest[ 2](0,2): f
+          st[ 3](0,3) -> dest[ 3](0,3): 5
+          ...
+          st[60](7,4) -> dest[61](7,5): 5
+          st[61](7,5) -> dest[62](7,6): e
+          st[62](7,6) -> dest[63](7,7): 2
+          st[63](7,7) -> dest[56](7,0): f
+          After Row Rotation: [c1f51bd4 110d8eeb a841c7d4 d258ce09 6db8d438 251949de ffc14594 f10105e2]
+          State as grid:
+c 1 f 5 1 b d 4 
+1 1 0 d 8 e e b 
+a 8 4 1 c 7 d 4 
+d 2 5 8 c e 0 9 
+6 d b 8 d 4 3 8 
+2 5 1 9 4 9 d e 
+f f c 1 4 5 9 4 
+f 1 0 1 0 5 e 2 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): c
+          perm[ 1](0,1) -> trans[ 8](1,0): 1
+          perm[ 2](0,2) -> trans[16](2,0): f
+          perm[ 3](0,3) -> trans[24](3,0): 5
+          ...
+          perm[60](7,4) -> trans[39](4,7): 0
+          perm[61](7,5) -> trans[47](5,7): 5
+          perm[62](7,6) -> trans[55](6,7): e
+          perm[63](7,7) -> trans[63](7,7): 2
+          After Matrix Transpose: [c1ad62ff 1182d5f1 f045b1c0 5d188911 18ccd440 be7e4955 ded03d9e 4b498e42]
+          State as grid:
+c 1 a d 6 2 f f 
+1 1 8 2 d 5 f 1 
+f 0 4 5 b 1 c 0 
+5 d 1 8 8 9 1 1 
+1 8 c c d 4 4 0 
+b e 7 e 4 9 5 5 
+d e d 0 3 d 9 e 
+4 b 4 9 8 e 4 2 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=c + prev[8]=1 + prev[16]=f + prev[24]=5 = 1
+          Mix col 0, row 1: prev[8]=1 + prev[16]=f + prev[24]=5 + prev[32]=1 = 6
+          Mix col 0, row 2: prev[16]=f + prev[24]=5 + prev[32]=1 + prev[40]=b = 0
+          Mix col 0, row 3: prev[24]=5 + prev[32]=1 + prev[40]=b + prev[48]=d = e
+          ...
+          Mix col 7, row 4: prev[39]=0 + prev[47]=5 + prev[55]=e + prev[63]=2 = 5
+          Mix col 7, row 5: prev[47]=5 + prev[55]=e + prev[63]=2 + prev[7]=f = 4
+          Mix col 7, row 6: prev[55]=e + prev[63]=2 + prev[7]=f + prev[15]=1 = 0
+          Mix col 7, row 7: prev[63]=2 + prev[7]=f + prev[15]=1 + prev[23]=0 = 2
+          After Column Mixing: [1f7c61b1 669bd302 03874766 e112c334 df43c865 88245614 eb38e2b0 0dad66e2]
+          State as grid:
+1 f 7 c 6 1 b 1 
+6 6 9 b d 3 0 2 
+0 3 8 7 4 7 6 6 
+e 1 1 2 c 3 3 4 
+d f 4 3 c 8 6 5 
+8 8 2 4 5 6 1 4 
+e b 3 8 e 2 b 0 
+0 d a d 6 6 e 2 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 2 + 9 = b
+          After Round Constant Addition: [1f7c61b1 669bd302 03874766 e112c334 df43c865 88245614 eb38e2b0 0dad66eb]
+          State as grid:
+1 f 7 c 6 1 b 1 
+6 6 9 b d 3 0 2 
+0 3 8 7 4 7 6 6 
+e 1 1 2 c 3 3 4 
+d f 4 3 c 8 6 5 
+8 8 2 4 5 6 1 4 
+e b 3 8 e 2 b 0 
+0 d a d 6 6 e b 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 12
+      >>> Entering section: Round 13
+        Initial state: [1f7c61b1 669bd302 03874766 e112c334 df43c865 88245614 eb38e2b0 0dad66eb]
+        State as grid:
+1 f 7 c 6 1 b 1 
+6 6 9 b d 3 0 2 
+0 3 8 7 4 7 6 6 
+e 1 1 2 c 3 3 4 
+d f 4 3 c 8 6 5 
+8 8 2 4 5 6 1 4 
+e b 3 8 e 2 b 0 
+0 d a d 6 6 e b 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 1 -> 5
+          st[ 1]: f -> 2
+          st[ 2]: 7 -> d
+          st[ 3]: c -> 4
+          ...
+          st[60]: 6 -> a
+          st[61]: 6 -> a
+          st[62]: e -> 1
+          st[63]: b -> 8
+          After S-box: [52d4a585 aae87bc6 cb3d9daa 15564bb9 729b43a0 33690a59 18b3168c c7f7aa18]
+          State as grid:
+5 2 d 4 a 5 8 5 
+a a e 8 7 b c 6 
+c b 3 d 9 d a a 
+1 5 5 6 4 b b 9 
+7 2 9 b 4 3 a 0 
+3 3 6 9 0 a 5 9 
+1 8 b 3 1 6 8 c 
+c 7 f 7 a a 1 8 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 5
+          st[ 1](0,1) -> dest[ 1](0,1): 2
+          st[ 2](0,2) -> dest[ 2](0,2): d
+          st[ 3](0,3) -> dest[ 3](0,3): 4
+          ...
+          st[60](7,4) -> dest[61](7,5): a
+          st[61](7,5) -> dest[62](7,6): a
+          st[62](7,6) -> dest[63](7,7): 1
+          st[63](7,7) -> dest[56](7,0): 8
+          After Row Rotation: [52d4a585 ae87bc6a 3d9daacb 64bb9155 43a0729b a5933690 8c18b316 8c7f7aa1]
+          State as grid:
+5 2 d 4 a 5 8 5 
+a e 8 7 b c 6 a 
+3 d 9 d a a c b 
+6 4 b b 9 1 5 5 
+4 3 a 0 7 2 9 b 
+a 5 9 3 3 6 9 0 
+8 c 1 8 b 3 1 6 
+8 c 7 f 7 a a 1 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 5
+          perm[ 1](0,1) -> trans[ 8](1,0): 2
+          perm[ 2](0,2) -> trans[16](2,0): d
+          perm[ 3](0,3) -> trans[24](3,0): 4
+          ...
+          perm[60](7,4) -> trans[39](4,7): 7
+          perm[61](7,5) -> trans[47](5,7): a
+          perm[62](7,6) -> trans[55](6,7): a
+          perm[63](7,7) -> trans[63](7,7): 1
+          After Matrix Transpose: [5a364a88 2ed435cc d89ba917 47db038f aba973b7 5ca1263a 86c5991a 5ab5b061]
+          State as grid:
+5 a 3 6 4 a 8 8 
+2 e d 4 3 5 c c 
+d 8 9 b a 9 1 7 
+4 7 d b 0 3 8 f 
+a b a 9 7 3 b 7 
+5 c a 1 2 6 3 a 
+8 6 c 5 9 9 1 a 
+5 a b 5 b 0 6 1 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=5 + prev[8]=2 + prev[16]=d + prev[24]=4 = 8
+          Mix col 0, row 1: prev[8]=2 + prev[16]=d + prev[24]=4 + prev[32]=a = d
+          Mix col 0, row 2: prev[16]=d + prev[24]=4 + prev[32]=a + prev[40]=5 = 0
+          Mix col 0, row 3: prev[24]=4 + prev[32]=a + prev[40]=5 + prev[48]=8 = b
+          ...
+          Mix col 7, row 4: prev[39]=7 + prev[47]=a + prev[55]=a + prev[63]=1 = c
+          Mix col 7, row 5: prev[47]=a + prev[55]=a + prev[63]=1 + prev[7]=8 = d
+          Mix col 7, row 6: prev[55]=a + prev[63]=1 + prev[7]=8 + prev[15]=c = f
+          Mix col 7, row 7: prev[63]=1 + prev[7]=8 + prev[15]=c + prev[23]=7 = c
+          After Column Mixing: [87601bda d8d34409 06a03577 b4da257a c7b4d25c 7641a92d 4874b8bf 9a4ac8bc]
+          State as grid:
+8 7 6 0 1 b d a 
+d 8 d 3 4 4 0 9 
+0 6 a 0 3 5 7 7 
+b 4 d a 2 5 7 a 
+c 7 b 4 d 2 5 c 
+7 6 4 1 a 9 2 d 
+4 8 7 4 b 8 b f 
+9 a 4 a c 8 b c 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: c + 4 = 0
+          After Round Constant Addition: [87601bda d8d34409 06a03577 b4da257a c7b4d25c 7641a92d 4874b8bf 9a4ac8b0]
+          State as grid:
+8 7 6 0 1 b d a 
+d 8 d 3 4 4 0 9 
+0 6 a 0 3 5 7 7 
+b 4 d a 2 5 7 a 
+c 7 b 4 d 2 5 c 
+7 6 4 1 a 9 2 d 
+4 8 7 4 b 8 b f 
+9 a 4 a c 8 b 0 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 13
+      >>> Entering section: Round 14
+        Initial state: [87601bda d8d34409 06a03577 b4da257a c7b4d25c 7641a92d 4874b8bf 9a4ac8b0]
+        State as grid:
+8 7 6 0 1 b d a 
+d 8 d 3 4 4 0 9 
+0 6 a 0 3 5 7 7 
+b 4 d a 2 5 7 a 
+c 7 b 4 d 2 5 c 
+7 6 4 1 a 9 2 d 
+4 8 7 4 b 8 b f 
+9 a 4 a c 8 b 0 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 8 -> 3
+          st[ 1]: 7 -> d
+          st[ 2]: 6 -> a
+          st[ 3]: 0 -> c
+          ...
+          st[60]: c -> 4
+          st[61]: 8 -> 3
+          st[62]: b -> 8
+          st[63]: 0 -> c
+          After S-box: [3dac587f 737b99ce cafcb0dd 897f60df 4d897604 da95fe67 93d98382 ef9f438c]
+          State as grid:
+3 d a c 5 8 7 f 
+7 3 7 b 9 9 c e 
+c a f c b 0 d d 
+8 9 7 f 6 0 d f 
+4 d 8 9 7 6 0 4 
+d a 9 5 f e 6 7 
+9 3 d 9 8 3 8 2 
+e f 9 f 4 3 8 c 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): 3
+          st[ 1](0,1) -> dest[ 1](0,1): d
+          st[ 2](0,2) -> dest[ 2](0,2): a
+          st[ 3](0,3) -> dest[ 3](0,3): c
+          ...
+          st[60](7,4) -> dest[61](7,5): 4
+          st[61](7,5) -> dest[62](7,6): 3
+          st[62](7,6) -> dest[63](7,7): 8
+          st[63](7,7) -> dest[56](7,0): c
+          After Row Rotation: [3dac587f 37b99ce7 fcb0ddca f60df897 76044d89 e67da95f 8293d983 cef9f438]
+          State as grid:
+3 d a c 5 8 7 f 
+3 7 b 9 9 c e 7 
+f c b 0 d d c a 
+f 6 0 d f 8 9 7 
+7 6 0 4 4 d 8 9 
+e 6 7 d a 9 5 f 
+8 2 9 3 d 9 8 3 
+c e f 9 f 4 3 8 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): 3
+          perm[ 1](0,1) -> trans[ 8](1,0): d
+          perm[ 2](0,2) -> trans[16](2,0): a
+          perm[ 3](0,3) -> trans[24](3,0): c
+          ...
+          perm[60](7,4) -> trans[39](4,7): f
+          perm[61](7,5) -> trans[47](5,7): 4
+          perm[62](7,6) -> trans[55](6,7): 3
+          perm[63](7,7) -> trans[63](7,7): 8
+          After Matrix Transpose: [33ff7e8c d7c6662e abb0079f c90d4d39 59df4adf 8cd8d994 7ec98583 f7a79f38]
+          State as grid:
+3 3 f f 7 e 8 c 
+d 7 c 6 6 6 2 e 
+a b b 0 0 7 9 f 
+c 9 0 d 4 d 3 9 
+5 9 d f 4 a d f 
+8 c d 8 d 9 9 4 
+7 e c 9 8 5 8 3 
+f 7 a 7 9 f 3 8 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=3 + prev[8]=d + prev[16]=a + prev[24]=c = 6
+          Mix col 0, row 1: prev[8]=d + prev[16]=a + prev[24]=c + prev[32]=5 = 8
+          Mix col 0, row 2: prev[16]=a + prev[24]=c + prev[32]=5 + prev[40]=8 = 3
+          Mix col 0, row 3: prev[24]=c + prev[32]=5 + prev[40]=8 + prev[48]=7 = 0
+          ...
+          Mix col 7, row 4: prev[39]=f + prev[47]=4 + prev[55]=3 + prev[63]=8 = e
+          Mix col 7, row 5: prev[47]=4 + prev[55]=3 + prev[63]=8 + prev[7]=c = b
+          Mix col 7, row 6: prev[55]=3 + prev[63]=8 + prev[7]=c + prev[15]=e = 5
+          Mix col 7, row 7: prev[63]=8 + prev[7]=c + prev[15]=e + prev[23]=f = 1
+          After Column Mixing: [6e621862 8442e4b5 3954572b 0c6dd51f 3a07271e 14275bcb 6f15e855 9c0c6a61]
+          State as grid:
+6 e 6 2 1 8 6 2 
+8 4 4 2 e 4 b 5 
+3 9 5 4 5 7 2 b 
+0 c 6 d d 5 1 f 
+3 a 0 7 2 7 1 e 
+1 4 2 7 5 b c b 
+6 f 1 5 e 8 5 5 
+9 c 0 c 6 a 6 1 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 1 + 2 = 3
+          After Round Constant Addition: [6e621862 8442e4b5 3954572b 0c6dd51f 3a07271e 14275bcb 6f15e855 9c0c6a63]
+          State as grid:
+6 e 6 2 1 8 6 2 
+8 4 4 2 e 4 b 5 
+3 9 5 4 5 7 2 b 
+0 c 6 d d 5 1 f 
+3 a 0 7 2 7 1 e 
+1 4 2 7 5 b c b 
+6 f 1 5 e 8 5 5 
+9 c 0 c 6 a 6 3 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 14
+      >>> Entering section: Round 15
+        Initial state: [6e621862 8442e4b5 3954572b 0c6dd51f 3a07271e 14275bcb 6f15e855 9c0c6a63]
+        State as grid:
+6 e 6 2 1 8 6 2 
+8 4 4 2 e 4 b 5 
+3 9 5 4 5 7 2 b 
+0 c 6 d d 5 1 f 
+3 a 0 7 2 7 1 e 
+1 4 2 7 5 b c b 
+6 f 1 5 e 8 5 5 
+9 c 0 c 6 a 6 3 
+
+        >>> Entering section: 1. S-box Layer
+          st[ 0]: 6 -> a
+          st[ 1]: e -> 1
+          st[ 2]: 6 -> a
+          st[ 3]: 2 -> 6
+          ...
+          st[60]: 6 -> a
+          st[61]: a -> f
+          st[62]: 6 -> a
+          st[63]: 3 -> b
+          After S-box: [a1a653a6 39961980 be090d68 c4a77052 bfcd6d51 596d0848 a2501300 e4c4afab]
+          State as grid:
+a 1 a 6 5 3 a 6 
+3 9 9 6 1 9 8 0 
+b e 0 9 0 d 6 8 
+c 4 a 7 7 0 5 2 
+b f c d 6 d 5 1 
+5 9 6 d 0 8 4 8 
+a 2 5 0 1 3 0 0 
+e 4 c 4 a f a b 
+
+        <<< Exiting section: 1. S-box Layer
+        >>> Entering section: 2a. Row Rotation
+          st[ 0](0,0) -> dest[ 0](0,0): a
+          st[ 1](0,1) -> dest[ 1](0,1): 1
+          st[ 2](0,2) -> dest[ 2](0,2): a
+          st[ 3](0,3) -> dest[ 3](0,3): 6
+          ...
+          st[60](7,4) -> dest[61](7,5): a
+          st[61](7,5) -> dest[62](7,6): f
+          st[62](7,6) -> dest[63](7,7): a
+          st[63](7,7) -> dest[56](7,0): b
+          After Row Rotation: [a1a653a6 99619803 090d68be 77052c4a 6d51bfcd 848596d0 00a25013 be4c4afa]
+          State as grid:
+a 1 a 6 5 3 a 6 
+9 9 6 1 9 8 0 3 
+0 9 0 d 6 8 b e 
+7 7 0 5 2 c 4 a 
+6 d 5 1 b f c d 
+8 4 8 5 9 6 d 0 
+0 0 a 2 5 0 1 3 
+b e 4 c 4 a f a 
+
+        <<< Exiting section: 2a. Row Rotation
+        >>> Entering section: 2b. Matrix Transpose
+          perm[ 0](0,0) -> trans[ 0](0,0): a
+          perm[ 1](0,1) -> trans[ 8](1,0): 1
+          perm[ 2](0,2) -> trans[16](2,0): a
+          perm[ 3](0,3) -> trans[24](3,0): 6
+          ...
+          perm[60](7,4) -> trans[39](4,7): 4
+          perm[61](7,5) -> trans[47](5,7): a
+          perm[62](7,6) -> trans[55](6,7): f
+          perm[63](7,7) -> trans[63](7,7): a
+          After Matrix Transpose: [a907680b 1997d40e a60058a4 61d5152c 5962b954 388cf60a a0b4cd1f 63ead03a]
+          State as grid:
+a 9 0 7 6 8 0 b 
+1 9 9 7 d 4 0 e 
+a 6 0 0 5 8 a 4 
+6 1 d 5 1 5 2 c 
+5 9 6 2 b 9 5 4 
+3 8 8 c f 6 0 a 
+a 0 b 4 c d 1 f 
+6 3 e a d 0 3 a 
+
+        <<< Exiting section: 2b. Matrix Transpose
+        >>> Entering section: 3. Column Mixing
+          Mix col 0, row 0: prev[0]=a + prev[8]=1 + prev[16]=a + prev[24]=6 = b
+          Mix col 0, row 1: prev[8]=1 + prev[16]=a + prev[24]=6 + prev[32]=5 = 6
+          Mix col 0, row 2: prev[16]=a + prev[24]=6 + prev[32]=5 + prev[40]=3 = 8
+          Mix col 0, row 3: prev[24]=6 + prev[32]=5 + prev[40]=3 + prev[48]=a = 8
+          ...
+          Mix col 7, row 4: prev[39]=4 + prev[47]=a + prev[55]=f + prev[63]=a = 7
+          Mix col 7, row 5: prev[47]=a + prev[55]=f + prev[63]=a + prev[7]=b = e
+          Mix col 7, row 6: prev[55]=f + prev[63]=a + prev[7]=b + prev[15]=e = 2
+          Mix col 7, row 7: prev[63]=a + prev[7]=b + prev[15]=e + prev[23]=4 = 7
+          After Column Mixing: [b96399c9 69ceea12 88b30c1e 82677189 847c3c97 d411eb4e b52cc942 bb7854d7]
+          State as grid:
+b 9 6 3 9 9 c 9 
+6 9 c e e a 1 2 
+8 8 b 3 0 c 1 e 
+8 2 6 7 7 1 8 9 
+8 4 7 c 3 c 9 7 
+d 4 1 1 e b 4 e 
+b 5 2 c c 9 4 2 
+b b 7 8 5 4 d 7 
+
+        <<< Exiting section: 3. Column Mixing
+        >>> Entering section: 4. Round Constant Addition
+          Add round constant to st[63]: 7 + 1 = 8
+          After Round Constant Addition: [b96399c9 69ceea12 88b30c1e 82677189 847c3c97 d411eb4e b52cc942 bb7854d8]
+          State as grid:
+b 9 6 3 9 9 c 9 
+6 9 c e e a 1 2 
+8 8 b 3 0 c 1 e 
+8 2 6 7 7 1 8 9 
+8 4 7 c 3 c 9 7 
+d 4 1 1 e b 4 e 
+b 5 2 c c 9 4 2 
+b b 7 8 5 4 d 8 
+
+        <<< Exiting section: 4. Round Constant Addition
+      <<< Exiting section: Round 15
+    <<< Exiting section: Processing Block 0
+  <<< Exiting section: Absorb Phase
+  >>> Entering section: Squeeze Phase
+    Digest byte  0: (st[ 0]=b << 4) | st[ 1]=9 = b9
+    Digest byte  1: (st[ 2]=6 << 4) | st[ 3]=3 = 63
+    Digest byte  2: (st[ 4]=9 << 4) | st[ 5]=9 = 99
+    Digest byte  3: (st[ 6]=c << 4) | st[ 7]=9 = c9
+    Digest byte  4: (st[ 8]=6 << 4) | st[ 9]=9 = 69
+    Digest byte  5: (st[10]=c << 4) | st[11]=e = ce
+    Digest byte  6: (st[12]=e << 4) | st[13]=a = ea
+    Digest byte  7: (st[14]=1 << 4) | st[15]=2 = 12
+    Digest byte  8: (st[16]=8 << 4) | st[17]=8 = 88
+    Digest byte  9: (st[18]=b << 4) | st[19]=3 = b3
+    Digest byte 10: (st[20]=0 << 4) | st[21]=c = 0c
+    Digest byte 11: (st[22]=1 << 4) | st[23]=e = 1e
+    Digest byte 12: (st[24]=8 << 4) | st[25]=2 = 82
+    Digest byte 13: (st[26]=6 << 4) | st[27]=7 = 67
+    Digest byte 14: (st[28]=7 << 4) | st[29]=1 = 71
+    Digest byte 15: (st[30]=8 << 4) | st[31]=9 = 89
+    Digest byte 16: (st[32]=8 << 4) | st[33]=4 = 84
+    Digest byte 17: (st[34]=7 << 4) | st[35]=c = 7c
+    Digest byte 18: (st[36]=3 << 4) | st[37]=c = 3c
+    Digest byte 19: (st[38]=9 << 4) | st[39]=7 = 97
+    Digest byte 20: (st[40]=d << 4) | st[41]=4 = d4
+    Digest byte 21: (st[42]=1 << 4) | st[43]=1 = 11
+    Digest byte 22: (st[44]=e << 4) | st[45]=b = eb
+    Digest byte 23: (st[46]=4 << 4) | st[47]=e = 4e
+    Digest byte 24: (st[48]=b << 4) | st[49]=5 = b5
+    Digest byte 25: (st[50]=2 << 4) | st[51]=c = 2c
+    Digest byte 26: (st[52]=c << 4) | st[53]=9 = c9
+    Digest byte 27: (st[54]=4 << 4) | st[55]=2 = 42
+    Digest byte 28: (st[56]=b << 4) | st[57]=b = bb
+    Digest byte 29: (st[58]=7 << 4) | st[59]=8 = 78
+    Digest byte 30: (st[60]=5 << 4) | st[61]=4 = 54
+    Digest byte 31: (st[62]=d << 4) | st[63]=8 = d8
+    Final digest: [185, 99, 153, 201, 105, 206, 234, 18, 136, 179, 12, 30, 130, 103, 113, 137, 132, 124, 60, 151, 212, 17, 235, 78, 181, 44, 201, 66, 187, 120, 84, 216]
+    Hex digest: b96399c969ceea1288b30c1e82677189847c3c97d411eb4eb52cc942bb7854d8
+  <<< Exiting section: Squeeze Phase
+<<< Exiting section: STACKSAT-128 Hash Computation

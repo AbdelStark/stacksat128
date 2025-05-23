@@ -316,6 +316,14 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_empty_message() {
+        let msg = b"";
+        let digest = stacksat_hash(msg);
+        let expected_hash = "bb04e59e240854ee421cdabf5cdd0416beaaaac545a63b752792b5a41dd18b4e";
+        assert_eq!(hex::encode(digest), expected_hash);
+    }
+
     /// Check the generated round constants
     #[test]
     fn test_lfsr_constants() {

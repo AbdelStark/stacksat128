@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+stacksat128 = { path = "../stacksat128" }
 bitvm = { git = "https://github.com/BitVM/BitVM", rev = "79eccd9" }
 bitcoin-script = { git = "https://github.com/BitVM/rust-bitcoin-script" }
 bitcoin = { version = "0.32.5", features = ["rand-std"] }
@@ -35,3 +36,4 @@ ark-crypto-primitives = { version = "0.5.0", features = ["snark", "sponge"] }
 ark-relations = "0.5.0"
 lazy_static = "1.5.0"
 itertools = "0.14.0"
+hex = "0.4.3"

@@ -88,7 +88,6 @@ fn stacksat128(
     msg_len: u32,
     define_var: bool,
     _use_full_tables: bool,
-    limb_len: u8,
 ) {
     // --- 0. Handle Empty Message Case --- (Unchanged)
     if msg_len == 0 {
@@ -119,8 +118,10 @@ fn stacksat128(
     let msg_nibbles_count = msg_len * 2;
     let mut message_vars: Vec<StackVariable> = Vec::new();
 
-    for i in 0..msg_nibbles_count as usize {
-        message_vars.push(stack.define(1, &format!("msg_nibble_{}", i)));
+    if define_var {
+        for i in 0..msg_nibbles_count as usize {
+            message_vars.push(stack.define(1, &format!("msg_nibble_{}", i)));
+        }
     }
 
     // 1.2 Apply padding (multi-rate 10*1 padding)
@@ -464,17 +465,17 @@ fn stacksat128(
 
 // --- Public Interface Functions --- (Remain Unchanged) ---
 
-pub fn stacksat128_compute_script_with_limb(message_len: usize, limb_len: u8) -> Script {
+pub fn stacksat128_compute_script_with_limb(message_len: usize) -> Script {
     assert!(
         message_len <= 1024,
         "STACKSAT-128: Message length > 1024 bytes not supported"
     );
     let mut stack = StackTracker::new();
-    stacksat128(&mut stack, message_len as u32, true, true, limb_len);
+    stacksat128(&mut stack, message_len as u32, true, true);
     stack.get_script()
 }
 
-pub fn stacksat128_push_message_script(message_bytes: &[u8], limb_len: u8) -> Script {
+pub fn stacksat128_push_message_script(message_bytes: &[u8]) -> Script {
     assert!(
         message_bytes.len() <= 1024,
         "This STACKSAT-128 implementation doesn't support messages longer than 1024 bytes"
@@ -489,7 +490,7 @@ pub fn stacksat128_push_message_script(message_bytes: &[u8], limb_len: u8) -> Sc
                 }
                 if i == 31 {
                     {
-                        U256::transform_limbsize(8, limb_len as u32)
+                        U256::transform_limbsize(8, 4)
                     }
                 }
             }
@@ -523,9 +524,6 @@ fn chunk_message(message_bytes: &[u8]) -> Vec<[u8; 32]> {
         .iter()
         .copied()
         .chain(std::iter::repeat(0u8).take(needed_padding_bytes))
-        // .chunks(2) // reverse 4-byte chunks
-        // .into_iter()
-        // .flat_map(|chunk| chunk.collect::<Vec<u8>>().into_iter().rev())
         .chunks(32) // collect 32-byte chunks
         .into_iter()
         .map(|mut chunk| std::array::from_fn(|_| chunk.next().unwrap()))
@@ -546,7 +544,7 @@ mod tests {
         let expected_hash = <[u8; 32]>::from_hex(STACKSAT_EMPTY_MSG_HASH).unwrap();
 
         // Create compute script for empty message
-        let compute_script = stacksat128_compute_script_with_limb(0, 8);
+        let compute_script = stacksat128_compute_script_with_limb(0);
         let verify_script = stacksat128_verify_output_script(expected_hash);
 
         // Combine scripts
@@ -590,8 +588,8 @@ mod tests {
 
         // Step 1: Create the actual scripts for this test
         println!("\nPreparing Bitcoin Script implementation...");
-        let push_script = stacksat128_push_message_script(message, 4);
-        let compute_script = stacksat128_compute_script_with_limb(message.len(), 8);
+        let push_script = stacksat128_push_message_script(message);
+        let compute_script = stacksat128_compute_script_with_limb(message.len());
         let verify_script = stacksat128_verify_output_script(expected_hash);
 
         // Step 2: Execute push + compute without verification first to isolate issues
@@ -714,8 +712,8 @@ mod tests {
 
         // Step 1: Create the actual scripts for this test
         println!("\nPreparing Bitcoin Script implementation...");
-        let push_script = stacksat128_push_message_script(message, 8);
-        let compute_script = stacksat128_compute_script_with_limb(message.len(), 8);
+        let push_script = stacksat128_push_message_script(message);
+        let compute_script = stacksat128_compute_script_with_limb(message.len());
         let verify_script = stacksat128_verify_output_script(expected_hash);
 
         // Step 2: Execute push + compute without verification first to isolate issues
@@ -760,7 +758,7 @@ mod tests {
             let debug_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 // Only run for a short time to get error information
                 // This might panic due to StackTracker issues
-                stacksat128(&mut debug_stack, message.len() as u32, false, true, 8);
+                stacksat128(&mut debug_stack, message.len() as u32, false, true);
             }));
 
             let debug_elapsed = debug_start.elapsed();
@@ -807,8 +805,8 @@ mod tests {
 
         // Step 1: Create the actual scripts for this test
         println!("\nPreparing Bitcoin Script implementation...");
-        let push_script = stacksat128_push_message_script(message, 8);
-        let compute_script = stacksat128_compute_script_with_limb(message.len(), 8);
+        let push_script = stacksat128_push_message_script(message);
+        let compute_script = stacksat128_compute_script_with_limb(message.len());
         let verify_script = stacksat128_verify_output_script(expected_hash);
 
         // Step 2: Execute push + compute without verification first to isolate issues
@@ -853,7 +851,7 @@ mod tests {
             let debug_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 // Only run for a short time to get error information
                 // This might panic due to StackTracker issues
-                stacksat128(&mut debug_stack, message.len() as u32, false, true, 8);
+                stacksat128(&mut debug_stack, message.len() as u32, false, true);
             }));
 
             let debug_elapsed = debug_start.elapsed();

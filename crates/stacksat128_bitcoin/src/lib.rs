@@ -86,46 +86,59 @@ fn generate_optimized_permutation() -> Script {
 
 // OPTIMIZATION 4: Streamlined MixColumns with batch processing
 fn generate_optimized_mixcolumns() -> Script {
-    script! {
-        // Process columns more efficiently than your current nested loop approach
-        // We'll add the 4 nibbles in each column using optimized stack operations
+    let mut mix_script = script!();
 
-        for col in 0..8 {
-            // For each column, we need to add nibbles at positions:
-            // col, col+8, col+16, col+24, col+32, col+40, col+48, col+56
+    // For each position in the state
+    for r_idx in 0..8 {
+        for c_idx in 0..8 {
+            // Calculate indices for the four nibbles to add in this position
+            let idx0 = r_idx * 8 + c_idx;
+            let idx1 = ((r_idx + 1) % 8) * 8 + c_idx;
+            let idx2 = ((r_idx + 2) % 8) * 8 + c_idx;
+            let idx3 = ((r_idx + 3) % 8) * 8 + c_idx;
 
-            // Get the nibbles for this column with optimized stack access
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - col) as u32 } OP_PICK          // Row 0
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (col + 8)) as u32 } OP_PICK     // Row 1
-            { generate_efficient_mod16_add() }  // Add first two
+            // Calculate depths based on how many mixed values we've already pushed
+            let items_already_mixed = r_idx * 8 + c_idx;
 
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (col + 16) + 1) as u32 } OP_PICK // Row 2 (adjust for consumed stack)
-            { generate_efficient_mod16_add() }  // Add third
+            // Adjust depths for the stack position
+            let depth0 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx0 + items_already_mixed;
+            let depth1 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx1 + items_already_mixed;
+            let depth2 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx2 + items_already_mixed;
+            let depth3 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx3 + items_already_mixed;
 
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (col + 24) + 2) as u32 } OP_PICK // Row 3 (adjust for consumed stack)
-            { generate_efficient_mod16_add() }  // Add fourth
+            // Build script for this position
+            mix_script = script!(
+                { mix_script }
+                // Pick p0 to the top of the stack
+                { depth0 as u32 } OP_PICK
+                // Pick p1 to the top of the stack
+                { depth1 as u32 + 1 } OP_PICK
+                // Add them all together modulo 16
+                // First add p0 + p1
+                { generate_efficient_mod16_add() }
 
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (col + 32) + 3) as u32 } OP_PICK // Row 4
-            { generate_efficient_mod16_add() }
+                // Pick p2 to the top of the stack
+                {depth2 as u32 + 1} OP_PICK
+                // Pick p3 to the top of the stack
+                {depth3 as u32 + 2} OP_PICK
+                // Then add p2 + p3
+                { generate_efficient_mod16_add() }
 
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (col + 40) + 4) as u32 } OP_PICK // Row 5
-            { generate_efficient_mod16_add() }
-
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (col + 48) + 5) as u32 } OP_PICK // Row 6
-            { generate_efficient_mod16_add() }
-
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (col + 56) + 6) as u32 } OP_PICK // Row 7
-            { generate_efficient_mod16_add() }
-
-            // Result: mixed value for this column
-        }
-
-        // Clean up old state values efficiently
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            { (STACKSATSCRIPT_STATE_NIBBLES + 8) as u32 } OP_ROLL
-            OP_DROP
+                // Finally add (p0+p1)+(p2+p3)
+                { generate_efficient_mod16_add() }
+            );
         }
     }
+    mix_script = script!(
+        { mix_script }
+        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            { (STACKSATSCRIPT_STATE_NIBBLES + i) as u32 } OP_ROLL
+        }
+        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
+            OP_2DROP
+        }
+    );
+    mix_script
 }
 
 // OPTIMIZATION 5: Complete optimized round function
@@ -141,8 +154,8 @@ fn generate_optimized_round(round_idx: usize) -> Script {
         // Step 2: Permutation (optimized)
         { generate_optimized_permutation() }
 
-        // // Step 3: MixColumns (optimized)
-        // { generate_optimized_mixcolumns() }
+        // Step 3: MixColumns (optimized)
+        { generate_optimized_mixcolumns() }
 
         // // Step 4: Add round constant
         // { round_constant }

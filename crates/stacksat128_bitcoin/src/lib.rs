@@ -311,15 +311,24 @@ pub fn stacksat128_push_message_script(message_bytes: &[u8]) -> Script {
         "This STACKSAT-128 implementation doesn't support messages longer than 1024 bytes"
     );
     let chunks = chunk_message(message_bytes);
+    let needed_padding_bytes = if message_bytes.len() % 32 == 0 {
+        0
+    } else {
+        32 - (message_bytes.len() % 32)
+    };
+    let needed_padding_nibbles = needed_padding_bytes * 2;
 
     script! {
-        for chunk in chunks.into_iter().rev() {
+        for chunk in chunks.into_iter() {
             for (i, byte) in chunk.into_iter().enumerate() {
                 {byte}
                 if i == 31 {
                     {U256::transform_limbsize(8, 4)}
                 }
             }
+        }
+        for _ in 0..needed_padding_nibbles {
+            OP_DROP
         }
     }
 }
@@ -420,7 +429,9 @@ mod tests {
         println!("=== OPTIMIZATION CORRECTNESS TEST ===");
 
         // Test that optimized version produces same results as reference
-        let message = b"test";
+        let message =
+            &hex::decode("0102030405060708090A0B0C0D0E0F10112233445566778899AABBCCDDEEFF00")
+                .unwrap();
         let expected_hash = stacksat128::stacksat_hash(message);
 
         let push_script = stacksat128_push_message_script(message);
@@ -443,5 +454,6 @@ mod tests {
             println!("This is expected during development - optimizations may need refinement");
             println!("Error: {:?}", result.error);
         }
+        assert!(result.success, "Optimization correctness test failed");
     }
 }

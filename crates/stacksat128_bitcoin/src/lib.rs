@@ -57,31 +57,29 @@ fn generate_efficient_mod16_add() -> Script {
 
 // OPTIMIZATION 3: Simplified permutation that minimizes stack operations
 fn generate_optimized_permutation() -> Script {
-    // Instead of your complex STACKSATSCRIPT_INV_FINAL_PERM calculations,
-    // use a simplified permutation that achieves good diffusion with fewer operations
+    let mut msg_depth = Vec::new();
+    for dest_idx in 0..STACKSATSCRIPT_STATE_NIBBLES {
+        // Calculate source index from permutation table
+        let source_idx = STACKSATSCRIPT_INV_FINAL_PERM[dest_idx];
+
+        // Calculate depth from current stack position
+        // The depth depends on how many items we've already generated
+        let mut depth = STACKSATSCRIPT_STATE_NIBBLES - 1 - source_idx;
+        // Update the depth for each smaller destination index because they moved up
+        for smaller_dest_idx in 0..dest_idx {
+            let source_smaller_idx = STACKSATSCRIPT_INV_FINAL_PERM[smaller_dest_idx];
+            if source_smaller_idx < source_idx {
+                depth += 1;
+            }
+        }
+        msg_depth.push(depth);
+    }
 
     script! {
         // Implement a pattern that rotates groups of nibbles
         // This provides good cryptographic properties with much less stack manipulation
-
-        // Process nibbles in groups of 8 to minimize stack depth issues
-        for group in 0..8 {
-            // For each group, implement a rotation pattern
-            // Group 0: positions 0-7, Group 1: positions 8-15, etc.
-
-
-            // Rotate this group of 8 nibbles in a pattern that works well with stack operations
-            // We'll reverse the order within each group (simple but effective)
-            for pos in 0..8 {
-                { (STACKSATSCRIPT_STATE_NIBBLES - 1 - (group * 8 + 7 - pos)) as u32 } OP_PICK
-            }
-        }
-
-        // Remove the old values efficiently
-        // The old values are now at positions 64-127 from the top
-        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            { STACKSATSCRIPT_STATE_NIBBLES as u32 } OP_ROLL
-            OP_DROP
+        for depth in msg_depth.iter() {
+            { *depth as u32 } OP_ROLL
         }
     }
 }
@@ -140,8 +138,8 @@ fn generate_optimized_round(round_idx: usize) -> Script {
         // Step 1: S-box substitution (optimized)
         { generate_optimized_sbox_script() }
 
-        // // Step 2: Permutation (optimized)
-        // { generate_optimized_permutation() }
+        // Step 2: Permutation (optimized)
+        { generate_optimized_permutation() }
 
         // // Step 3: MixColumns (optimized)
         // { generate_optimized_mixcolumns() }
@@ -171,8 +169,63 @@ fn generate_optimized_absorption(message_vars: &[StackVariable], block_idx: usiz
             // Add them modulo 16
             { generate_efficient_mod16_add() }
         }
+
+        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
+            { (STACKSATSCRIPT_STATE_NIBBLES - 1) as u32 } OP_ROLL
+        }
     }
 }
+
+// --- Permutation Maps ---
+const STACKSATSCRIPT_FINAL_PERM: [usize; STACKSATSCRIPT_STATE_NIBBLES] = {
+    const PERM_ROW_ROT: [usize; STACKSATSCRIPT_STATE_NIBBLES] = {
+        let mut fwd_p = [0usize; STACKSATSCRIPT_STATE_NIBBLES];
+        let mut idx = 0;
+        while idx < STACKSATSCRIPT_STATE_NIBBLES {
+            let row = idx / 8;
+            let col = idx % 8;
+            let dest_col = (col + 8 - row) % 8;
+            let dest_idx = row * 8 + dest_col;
+            fwd_p[idx] = dest_idx;
+            idx += 1;
+        }
+        fwd_p
+    };
+    let mut temp_state = [0usize; STACKSATSCRIPT_STATE_NIBBLES];
+    let mut i = 0;
+    while i < STACKSATSCRIPT_STATE_NIBBLES {
+        temp_state[PERM_ROW_ROT[i]] = i;
+        i += 1;
+    }
+    let mut current_perm_source = [0usize; STACKSATSCRIPT_STATE_NIBBLES];
+    let mut r_idx = 0;
+    while r_idx < 8 {
+        let mut c_idx = 0;
+        while c_idx < 8 {
+            current_perm_source[c_idx * 8 + r_idx] = temp_state[r_idx * 8 + c_idx];
+            c_idx += 1;
+        }
+        r_idx += 1;
+    }
+    let mut final_perm_calc = [0usize; STACKSATSCRIPT_STATE_NIBBLES];
+    let mut dest_idx = 0;
+    while dest_idx < STACKSATSCRIPT_STATE_NIBBLES {
+        final_perm_calc[current_perm_source[dest_idx]] = dest_idx;
+        dest_idx += 1;
+    }
+    final_perm_calc
+};
+
+const STACKSATSCRIPT_INV_FINAL_PERM: [usize; STACKSATSCRIPT_STATE_NIBBLES] = {
+    /* ... unchanged ... */
+    let mut inv_perm = [0usize; STACKSATSCRIPT_STATE_NIBBLES];
+    let mut i = 0;
+    while i < STACKSATSCRIPT_STATE_NIBBLES {
+        inv_perm[STACKSATSCRIPT_FINAL_PERM[i]] = i;
+        i += 1;
+    }
+    inv_perm
+};
 
 // Main optimized implementation
 fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: bool) {
@@ -287,6 +340,8 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
                 0,
                 &format!("opt_round_{}_{}", block_idx, round_idx),
             );
+            stack.debug();
+            return;
         }
     }
 

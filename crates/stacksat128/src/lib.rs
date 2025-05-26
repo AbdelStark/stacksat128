@@ -99,7 +99,6 @@ fn round(st: &mut [u8; STATE_NIBBLES], r: usize) {
         }
     }
     *st = transposed_state; // State is now permuted
-
     // --- 3. Mixing Layer (Column Additive Mix) ----------------------------
     // Script: Loop 8 columns. Inner loop 8 rows. Needs stack ops (OP_PICK)
     // to read previous state values for calculation without consuming them yet.

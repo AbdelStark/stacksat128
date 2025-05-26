@@ -26,29 +26,14 @@ fn generate_optimized_sbox_script() -> Script {
     // that's compatible with your Bitcoin Script library constraints
 
     script! {
-        // Pre-push S-box values in a pattern that works with available opcodes
-        // We'll use a more efficient lookup pattern than your current deep PICK operations
-
-        // Push S-box table onto stack for efficient lookups
-        for sbox_value in STACKSATSCRIPT_SBOX {
-            { sbox_value }
-        }
-
         // Now process each nibble with optimized access pattern
         // Instead of complex depth calculations, use a systematic approach
-        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
             // Calculate the position more efficiently
-            // The nibble we want is at position (16 + 64 - 1 - i) from top
-            { (16 + STACKSATSCRIPT_STATE_NIBBLES - 1 - i) as u32 } OP_PICK
-
-            // Use the nibble value to index into S-box (which is at positions 0-15 from current top)
-            OP_PICK
-        }
-
-        // Clean up the S-box table from stack
-        for _ in 0..16 {
-            { (STACKSATSCRIPT_STATE_NIBBLES + 16) as u32 } OP_ROLL
-            OP_DROP
+            // The nibble we want is at position 63 from top
+            { 63 as u32 } OP_ROLL // Pick the value to the top
+            { 63 as u32 } OP_ADD // value + 63
+            OP_PICK // Pick the nibble from the S-box
         }
     }
 }
@@ -155,15 +140,15 @@ fn generate_optimized_round(round_idx: usize) -> Script {
         // Step 1: S-box substitution (optimized)
         { generate_optimized_sbox_script() }
 
-        // Step 2: Permutation (optimized)
-        { generate_optimized_permutation() }
+        // // Step 2: Permutation (optimized)
+        // { generate_optimized_permutation() }
 
-        // Step 3: MixColumns (optimized)
-        { generate_optimized_mixcolumns() }
+        // // Step 3: MixColumns (optimized)
+        // { generate_optimized_mixcolumns() }
 
-        // Step 4: Add round constant
-        { round_constant }
-        { generate_efficient_mod16_add() }
+        // // Step 4: Add round constant
+        // { round_constant }
+        // { generate_efficient_mod16_add() }
     }
 }
 
@@ -178,19 +163,13 @@ fn generate_optimized_absorption(message_vars: &[StackVariable], block_idx: usiz
             // This is more efficient than your current approach
 
             // The message nibble we want is at a calculable position
-            { message_vars.len() + STACKSATSCRIPT_STATE_NIBBLES - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_PICK
+            { message_vars.len() + STACKSATSCRIPT_STATE_NIBBLES + 16 - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_PICK
 
             // The state nibble we want is at position i from the rate portion
-            { (STACKSATSCRIPT_RATE_NIBBLES - 1 - i) as u32 } OP_PICK
+            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - i) as u32 } OP_ROLL
 
             // Add them modulo 16
             { generate_efficient_mod16_add() }
-        }
-
-        // Efficiently reorganize stack - remove old rate portion
-        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
-            { (STACKSATSCRIPT_RATE_NIBBLES + STACKSATSCRIPT_RATE_NIBBLES) as u32 } OP_ROLL
-            OP_DROP
         }
     }
 }
@@ -221,11 +200,21 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
     let msg_nibbles_count = msg_len * 2;
     let mut message_vars: Vec<StackVariable> = Vec::new();
 
-    if define_var {
-        for i in 0..msg_nibbles_count as usize {
-            message_vars.push(stack.define(1, &format!("opt_msg_{}", i)));
-        }
+    // DEBUG ONLY
+    let origin_msg = [
+        0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0,
+        15, 1, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
+        13, 14, 14, 15, 15, 0, 0,
+    ];
+    for i in 0..origin_msg.len() {
+        message_vars.push(stack.number(origin_msg[i]));
+        stack.rename(message_vars[i], &format!("opt_msg_{}", i));
     }
+    // if define_var {
+    //     for i in 0..msg_nibbles_count as usize {
+    //         message_vars.push(stack.define(1, &format!("opt_msg_{}", i)));
+    //     }
+    // }
 
     // Efficient padding
     message_vars.push(stack.number(8));
@@ -241,12 +230,24 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
 
     // Initialize state efficiently
     let state_init_script = script! {
+        for &value in STACKSATSCRIPT_SBOX.iter().rev() {
+            {value}
+        }
         for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
             OP_0
         }
     };
 
     stack.custom(state_init_script, 0, false, 0, "optimized_state_init");
+
+    //DEBUG ONLY
+    for i in 0..16 {
+        stack.define(1, &format!("opt_sbox_{}", i));
+    }
+    let mut state_vars: Vec<StackVariable> = Vec::new();
+    for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
+        state_vars.push(stack.define(1, &format!("opt_state_{}", i)));
+    }
 
     // Main processing loop (optimized)
     let num_blocks = message_vars.len() / STACKSATSCRIPT_RATE_NIBBLES;
@@ -261,6 +262,20 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
             0,
             &format!("opt_absorb_{}", block_idx),
         );
+
+        //DEBUG ONLY
+        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
+            stack.rename(
+                state_vars[i],
+                &format!("opt_state_{}", i + STACKSATSCRIPT_RATE_NIBBLES),
+            );
+        }
+        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
+            stack.rename(
+                state_vars[i + STACKSATSCRIPT_RATE_NIBBLES],
+                &format!("opt_absorb_{}_{}", block_idx, i),
+            );
+        }
 
         // Optimized permutation rounds
         for round_idx in 0..STACKSATSCRIPT_ROUNDS {

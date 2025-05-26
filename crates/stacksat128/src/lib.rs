@@ -82,6 +82,7 @@ fn round(st: &mut [u8; STATE_NIBBLES], r: usize) {
         *b = SBOX[*b as usize];
     }
 
+
     // --- 2. Permutation Layer (Row Rotation + Matrix Transpose) -----------
     // Script: Needs careful stack manipulation sequences for RowRot then Transpose.
     // 2a. Apply Row Rotation permutation

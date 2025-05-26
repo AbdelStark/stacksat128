@@ -177,7 +177,7 @@ fn generate_optimized_absorption(message_vars: &[StackVariable], block_idx: usiz
             { message_vars.len() + STACKSATSCRIPT_STATE_NIBBLES + 16 - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_PICK
 
             // The state nibble we want is at position i from the rate portion
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1 - i) as u32 } OP_ROLL
+            { (STACKSATSCRIPT_STATE_NIBBLES) as u32 } OP_ROLL
 
             // Add them modulo 16
             { generate_efficient_mod16_add() }
@@ -266,21 +266,21 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
     let msg_nibbles_count = msg_len * 2;
     let mut message_vars: Vec<StackVariable> = Vec::new();
 
-    // DEBUG ONLY
-    let origin_msg = [
-        0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0,
-        15, 1, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
-        13, 14, 14, 15, 15, 0, 0,
-    ];
-    for i in 0..origin_msg.len() {
-        message_vars.push(stack.number(origin_msg[i]));
-        stack.rename(message_vars[i], &format!("opt_msg_{}", i));
-    }
-    // if define_var {
-    //     for i in 0..msg_nibbles_count as usize {
-    //         message_vars.push(stack.define(1, &format!("opt_msg_{}", i)));
-    //     }
+    // // DEBUG ONLY
+    // let origin_msg = [
+    //     0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0,
+    //     15, 1, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
+    //     13, 14, 14, 15, 15, 0, 0,
+    // ];
+    // for i in 0..origin_msg.len() {
+    //     message_vars.push(stack.number(origin_msg[i]));
+    //     stack.rename(message_vars[i], &format!("opt_msg_{}", i));
     // }
+    if define_var {
+        for i in 0..msg_nibbles_count as usize {
+            message_vars.push(stack.define(1, &format!("opt_msg_{}", i)));
+        }
+    }
 
     // Efficient padding
     message_vars.push(stack.number(8));
@@ -330,17 +330,8 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
         );
 
         //DEBUG ONLY
-        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
-            stack.rename(
-                state_vars[i],
-                &format!("opt_state_{}", i + STACKSATSCRIPT_RATE_NIBBLES),
-            );
-        }
-        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
-            stack.rename(
-                state_vars[i + STACKSATSCRIPT_RATE_NIBBLES],
-                &format!("opt_absorb_{}_{}", block_idx, i),
-            );
+        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            stack.rename(state_vars[i], &format!("opt_state_{}", i));
         }
 
         // Optimized permutation rounds
@@ -356,6 +347,19 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
         }
     }
 
+    // Finalization
+    let final_script = script! {
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            OP_TOALTSTACK
+        }
+        for _ in 0..(message_vars.len() + 16) / 2 {
+            OP_2DROP
+        }
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            OP_FROMALTSTACK
+        }
+    };
+    stack.custom(final_script, 0, false, 0, "optimized_final");
 }
 
 // Public interface functions
@@ -521,6 +525,7 @@ mod tests {
 
         let script = ScriptBuf::from_bytes(script_bytes);
         let result = execute_script_buf(script);
+        println!("result: {:?}", result.final_stack);
 
         println!(
             "Correctness test: {}",

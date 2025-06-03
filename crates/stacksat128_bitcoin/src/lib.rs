@@ -28,12 +28,15 @@ fn generate_optimized_sbox_script() -> Script {
     script! {
         // Now process each nibble with optimized access pattern
         // Instead of complex depth calculations, use a systematic approach
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
             // Calculate the position more efficiently
-            // The nibble we want is at position 63 from top
-            { 63 as u32 } OP_ROLL // Pick the value to the top
-            { 63 as u32 } OP_ADD // value + 63
+            // The nibble we want is at position value + 64 - i - 1 from top
+            { (64 - i - 1) as u32 } OP_ADD // value + 64 - i - 1
             OP_PICK // Pick the nibble from the S-box
+            OP_TOALTSTACK
+        }
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            OP_FROMALTSTACK
         }
     }
 }

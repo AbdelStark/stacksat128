@@ -1,6 +1,5 @@
 //! Fixed Optimized STACKSAT-128 Bitcoin Script Implementation
 //! This version fixes compilation errors and works within your bitcoin_script constraints
-
 use bitcoin::hex::FromHex;
 use bitcoin_script_stack::stack::{StackTracker, StackVariable};
 
@@ -55,6 +54,24 @@ fn generate_efficient_mod16_add() -> Script {
         OP_IF               // If sum > 15
             OP_16 OP_SUB    // Subtract 16 to get modulo result
         OP_ENDIF            // Result: (a + b) mod 16
+    }
+}
+
+fn generate_mod64_to_mod16() -> Script {
+    script! {
+        // STEP 1: if x>31, do x:=x−32
+        OP_DUP
+        <31> OP_GREATERTHAN
+        OP_IF
+            <32> OP_SUB
+        OP_ENDIF
+
+        // STEP 2: now y:=current_top (0..31); if y>15, do y:=y−16
+        OP_DUP
+        <15> OP_GREATERTHAN
+        OP_IF
+            <16> OP_SUB
+        OP_ENDIF
     }
 }
 
@@ -115,20 +132,20 @@ fn generate_optimized_mixcolumns() -> Script {
                 // Pick p0 to the top of the stack
                 { depth0 as u32 } OP_PICK
                 // Pick p1 to the top of the stack
-                { depth1 as u32 + 1 } OP_PICK
-                // Add them all together modulo 16
-                // First add p0 + p1
-                { generate_efficient_mod16_add() }
+                { (depth1 + 1) as u32 } OP_PICK
+                // p0 + p1
+                OP_ADD
 
                 // Pick p2 to the top of the stack
-                {depth2 as u32 + 1} OP_PICK
+                { (depth2 + 1) as u32} OP_PICK
                 // Pick p3 to the top of the stack
-                {depth3 as u32 + 2} OP_PICK
+                { (depth3 + 2) as u32} OP_PICK
                 // Then add p2 + p3
-                { generate_efficient_mod16_add() }
+                OP_ADD
 
-                // Finally add (p0+p1)+(p2+p3)
-                { generate_efficient_mod16_add() }
+                // Finally add (p0+p1)+(p2+p3) and mod 16
+                OP_ADD
+                { generate_mod64_to_mod16() }
             );
         }
     }
@@ -517,7 +534,10 @@ mod tests {
         let push_script = stacksat128_push_message_script(message);
         let compute_script = stacksat128_compute_script_optimized(message.len());
         let verify_script = stacksat128_verify_output_script(expected_hash);
-        println!("script size: {}", compute_script.clone().compile().to_bytes().len());
+        println!(
+            "script size: {}",
+            compute_script.clone().compile().to_bytes().len()
+        );
 
         let mut script_bytes = push_script.compile().to_bytes();
         script_bytes.extend(compute_script.compile().to_bytes());

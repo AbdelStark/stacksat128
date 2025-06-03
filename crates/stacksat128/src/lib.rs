@@ -163,6 +163,11 @@ pub fn stacksat_hash(msg: &[u8]) -> [u8; DIGEST_BYTES] {
         }
         chunk_start += RATE_NIBBLES;
 
+        // Swap first 32 elements with last 32 elements
+        for i in 0..RATE_NIBBLES {
+            st.swap(i, i + RATE_NIBBLES);
+        }
+
         // Apply the permutation rounds
         // Script: Unroll 16 rounds. Each round is a sequence of opcodes.
         for r in 0..ROUNDS {

@@ -182,10 +182,6 @@ fn generate_optimized_absorption(message_vars: &[StackVariable], block_idx: usiz
             // Add them modulo 16
             { generate_efficient_mod16_add() }
         }
-
-        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
-            { (STACKSATSCRIPT_STATE_NIBBLES - 1) as u32 } OP_ROLL
-        }
     }
 }
 
@@ -518,6 +514,7 @@ mod tests {
         let push_script = stacksat128_push_message_script(message);
         let compute_script = stacksat128_compute_script_optimized(message.len());
         let verify_script = stacksat128_verify_output_script(expected_hash);
+        println!("script size: {}", compute_script.clone().compile().to_bytes().len());
 
         let mut script_bytes = push_script.compile().to_bytes();
         script_bytes.extend(compute_script.compile().to_bytes());

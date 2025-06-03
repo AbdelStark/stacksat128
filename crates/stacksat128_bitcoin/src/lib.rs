@@ -151,11 +151,14 @@ fn generate_optimized_mixcolumns() -> Script {
     }
     mix_script = script!(
         { mix_script }
-        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            { (STACKSATSCRIPT_STATE_NIBBLES + i) as u32 } OP_ROLL
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            OP_TOALTSTACK
         }
         for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
             OP_2DROP
+        }
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
+            OP_FROMALTSTACK
         }
     );
     mix_script

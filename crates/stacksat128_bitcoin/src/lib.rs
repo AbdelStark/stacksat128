@@ -117,14 +117,11 @@ fn generate_optimized_mixcolumns() -> Script {
             let idx2 = ((r_idx + 2) % 8) * 8 + c_idx;
             let idx3 = ((r_idx + 3) % 8) * 8 + c_idx;
 
-            // Calculate depths based on how many mixed values we've already pushed
-            let items_already_mixed = r_idx * 8 + c_idx;
-
             // Adjust depths for the stack position
-            let depth0 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx0 + items_already_mixed;
-            let depth1 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx1 + items_already_mixed;
-            let depth2 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx2 + items_already_mixed;
-            let depth3 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx3 + items_already_mixed;
+            let depth0 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx0;
+            let depth1 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx1;
+            let depth2 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx2;
+            let depth3 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx3;
 
             // Build script for this position
             mix_script = script!(
@@ -146,14 +143,13 @@ fn generate_optimized_mixcolumns() -> Script {
                 // Finally add (p0+p1)+(p2+p3) and mod 16
                 OP_ADD
                 { generate_mod64_to_mod16() }
+
+                OP_TOALTSTACK
             );
         }
     }
     mix_script = script!(
         { mix_script }
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            OP_TOALTSTACK
-        }
         for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
             OP_2DROP
         }

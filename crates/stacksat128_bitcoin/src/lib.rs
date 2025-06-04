@@ -307,17 +307,9 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
         }
     }
 
-    // Efficient padding
-    message_vars.push(stack.number(8));
-    let current_len = msg_nibbles_count as usize + 1;
-    let zeros_needed = (STACKSATSCRIPT_RATE_NIBBLES
-        - ((current_len + 1) % STACKSATSCRIPT_RATE_NIBBLES))
-        % STACKSATSCRIPT_RATE_NIBBLES;
-
-    for _ in 0..zeros_needed {
+    while message_vars.len() % STACKSATSCRIPT_RATE_NIBBLES != 0 {
         message_vars.push(stack.number(0));
     }
-    message_vars.push(stack.number(1));
 
     // Initialize state efficiently
     let state_init_script = script! {
@@ -507,7 +499,6 @@ mod tests {
             &hex::decode("0102030405060708090A0B0C0D0E0F10112233445566778899AABBCCDDEEFF00")
                 .unwrap();
         let expected_hash = stacksat128::stacksat_hash(message);
-        println!("expected_hash: {:?}", expected_hash);
 
         let push_script = stacksat128_push_message_script(message);
         let compute_script = stacksat128_compute_script_optimized(message.len());

@@ -130,15 +130,12 @@ fn round(st: &mut [u8; STATE_NIBBLES], r: usize) {
     st[STATE_NIBBLES - 1] = add16(st[STATE_NIBBLES - 1], RC[r]);
 }
 
-/// Multi-rate padding: append 0x8 (nibble), zeros, then 0x1 (nibble).
+/// Multi-rate padding: append zeros until the length is a multiple of RATE_NIBBLES
 /// Takes ownership and returns a new padded Vec.
 fn pad(mut nibbles: Vec<u8>) -> Vec<u8> {
-    nibbles.push(0x8); // Add padding byte
-    while (nibbles.len() % RATE_NIBBLES) != (RATE_NIBBLES - 1) {
+    while (nibbles.len() % RATE_NIBBLES) != 0 {
         nibbles.push(0x0); // Pad with zeros
     }
-    nibbles.push(0x1); // Add final terminator byte
-    debug_assert!(nibbles.len() % RATE_NIBBLES == 0);
     nibbles
 }
 

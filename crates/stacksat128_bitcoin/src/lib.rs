@@ -25,15 +25,19 @@ fn generate_optimized_sbox_script() -> Script {
     // that's compatible with your Bitcoin Script library constraints
 
     script! {
+        // Push S-box to stack
+        { generate_push_sbox_script() }
         // Now process each nibble with optimized access pattern
         // Instead of complex depth calculations, use a systematic approach
-        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
+        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
             // Calculate the position more efficiently
-            // The nibble we want is at position value + 64 - i - 1 from top
-            { (64 - i - 1) as u32 } OP_ADD // value + 64 - i - 1
+            // The nibble we want is at position value from top
+            <16> OP_ROLL // Move the nibble to the top of the stack
             OP_PICK // Pick the nibble from the S-box
             OP_TOALTSTACK
         }
+        // Drop the S-box from the stack
+        { generate_drop_script(16) }
         for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
             OP_FROMALTSTACK
         }
@@ -49,10 +53,10 @@ fn generate_efficient_mod16_add() -> Script {
 
         OP_ADD              // Add the two nibbles
         OP_DUP              // Duplicate the sum
-        OP_15               // Push 15 for comparison
+        <15>                // Push 15 for comparison
         OP_GREATERTHAN      // Check if sum > 15
         OP_IF               // If sum > 15
-            OP_16 OP_SUB    // Subtract 16 to get modulo result
+            <16> OP_SUB     // Subtract 16 to get modulo result
         OP_ENDIF            // Result: (a + b) mod 16
     }
 }
@@ -72,6 +76,25 @@ fn generate_mod64_to_mod16() -> Script {
         OP_IF
             <16> OP_SUB
         OP_ENDIF
+    }
+}
+
+fn generate_push_sbox_script() -> Script {
+    script! {
+        for &value in STACKSATSCRIPT_SBOX.iter().rev() {
+            {value}
+        }
+    }
+}
+
+fn generate_drop_script(n: usize) -> Script {
+    script! {
+        for _ in 0..n/2 {
+            OP_2DROP
+        }
+        if n % 2 == 1 {
+            OP_DROP
+        }
     }
 }
 
@@ -150,9 +173,7 @@ fn generate_optimized_mixcolumns() -> Script {
     }
     mix_script = script!(
         { mix_script }
-        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
-            OP_2DROP
-        }
+        { generate_drop_script(STACKSATSCRIPT_STATE_NIBBLES) }
         for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
             OP_FROMALTSTACK
         }
@@ -193,7 +214,7 @@ fn generate_optimized_absorption(message_vars: &[StackVariable], block_idx: usiz
             // This is more efficient than your current approach
 
             // The message nibble we want is at a calculable position
-            { message_vars.len() + STACKSATSCRIPT_STATE_NIBBLES + 16 - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_PICK
+            { message_vars.len() + STACKSATSCRIPT_STATE_NIBBLES - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_ROLL
 
             // The state nibble we want is at position i from the rate portion
             { (STACKSATSCRIPT_STATE_NIBBLES) as u32 } OP_ROLL
@@ -280,17 +301,6 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
     // Message preparation (optimized but keeping your working approach)
     let msg_nibbles_count = msg_len * 2;
     let mut message_vars: Vec<StackVariable> = Vec::new();
-
-    // // DEBUG ONLY
-    // let origin_msg = [
-    //     0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0,
-    //     15, 1, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
-    //     13, 14, 14, 15, 15, 0, 0,
-    // ];
-    // for i in 0..origin_msg.len() {
-    //     message_vars.push(stack.number(origin_msg[i]));
-    //     stack.rename(message_vars[i], &format!("opt_msg_{}", i));
-    // }
     if define_var {
         for i in 0..msg_nibbles_count as usize {
             message_vars.push(stack.define(1, &format!("opt_msg_{}", i)));
@@ -311,24 +321,12 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
 
     // Initialize state efficiently
     let state_init_script = script! {
-        for &value in STACKSATSCRIPT_SBOX.iter().rev() {
-            {value}
-        }
         for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            OP_0
+            <0>
         }
     };
 
     stack.custom(state_init_script, 0, false, 0, "optimized_state_init");
-
-    //DEBUG ONLY
-    for i in 0..16 {
-        stack.define(1, &format!("opt_sbox_{}", i));
-    }
-    let mut state_vars: Vec<StackVariable> = Vec::new();
-    for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-        state_vars.push(stack.define(1, &format!("opt_state_{}", i)));
-    }
 
     // Main processing loop (optimized)
     let num_blocks = message_vars.len() / STACKSATSCRIPT_RATE_NIBBLES;
@@ -344,11 +342,6 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
             &format!("opt_absorb_{}", block_idx),
         );
 
-        //DEBUG ONLY
-        for i in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            stack.rename(state_vars[i], &format!("opt_state_{}", i));
-        }
-
         // Optimized permutation rounds
         for round_idx in 0..STACKSATSCRIPT_ROUNDS {
             let round_script = generate_optimized_round(round_idx);
@@ -361,20 +354,6 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
             );
         }
     }
-
-    // Finalization
-    let final_script = script! {
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            OP_TOALTSTACK
-        }
-        for _ in 0..(message_vars.len() + 16) / 2 {
-            OP_2DROP
-        }
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            OP_FROMALTSTACK
-        }
-    };
-    stack.custom(final_script, 0, false, 0, "optimized_final");
 }
 
 // Public interface functions

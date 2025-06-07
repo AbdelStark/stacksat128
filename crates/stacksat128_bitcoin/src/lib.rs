@@ -225,17 +225,17 @@ fn generate_optimized_round(round_idx: usize) -> Script {
 }
 
 // OPTIMIZATION 6: Efficient absorption phase
-fn generate_optimized_absorption(msg_nibbles_len: usize, block_idx: usize) -> Script {
+fn generate_optimized_absorption() -> Script {
     script! {
         // Absorption phase optimized to minimize stack operations
         // Process rate nibbles efficiently
 
-        for i in 0..STACKSATSCRIPT_RATE_NIBBLES {
+        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
             // Instead of complex copy_var operations, use direct stack manipulation
             // This is more efficient than your current approach
 
-            // The message nibble we want is at a calculable position
-            { msg_nibbles_len + STACKSATSCRIPT_STATE_NIBBLES - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_ROLL
+            // The message nibble we want is at the top of the altstack
+            OP_FROMALTSTACK
 
             // The state nibble we want is at position i from the rate portion
             { (STACKSATSCRIPT_STATE_NIBBLES) as u32 } OP_ROLL
@@ -333,6 +333,14 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: usize, define_var: b
     let padding_script = generate_push_script(0, padding_len);
     stack.custom(padding_script, 0, false, 0, "optimized_padding");
 
+    // Move the message to the altstack
+    let move_msg_to_altstack_script = script! {
+        for _ in 0..msg_nibbles_len {
+            OP_TOALTSTACK
+        }
+    };
+    stack.custom(move_msg_to_altstack_script, 0, false, 0, "optimized_move_msg_to_altstack");
+
     // Initialize state efficiently
     let state_init_script = generate_push_script(0, STACKSATSCRIPT_STATE_NIBBLES);
     stack.custom(state_init_script, 0, false, 0, "optimized_state_init");
@@ -342,7 +350,7 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: usize, define_var: b
 
     for block_idx in 0..num_blocks {
         // Optimized absorption
-        let absorption_script = generate_optimized_absorption(msg_nibbles_len, block_idx);
+        let absorption_script = generate_optimized_absorption();
         stack.custom(
             absorption_script,
             0,

@@ -155,50 +155,51 @@ fn generate_optimized_mixcolumns() -> Script {
     // For each position in the state
     for r_idx in 0..8 {
         for c_idx in 0..8 {
-            // Calculate indices for the four nibbles to add in this position
-            let idx0 = r_idx * 8 + c_idx;
-            let idx1 = ((r_idx + 1) % 8) * 8 + c_idx;
-            let idx2 = ((r_idx + 2) % 8) * 8 + c_idx;
-            let idx3 = ((r_idx + 3) % 8) * 8 + c_idx;
-
-            // Adjust depths for the stack position
-            let depth0 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx0;
-            let depth1 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx1;
-            let depth2 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx2;
-            let depth3 = STACKSATSCRIPT_STATE_NIBBLES - 1 - idx3;
+            let position = r_idx * 8 + c_idx;
 
             // Build script for this position
             mix_script = script!(
                 { mix_script }
                 // Pick p0 to the top of the stack
-                { depth0 as u32 } OP_PICK
+                { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[0] }
+                if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[0] {
+                    OP_ROLL
+                } else {
+                    OP_PICK
+                }
                 // Pick p1 to the top of the stack
-                { (depth1 + 1) as u32 } OP_PICK
+                { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[1] + 1 }
+                if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[1] {
+                    OP_ROLL
+                } else {
+                    OP_PICK
+                }
                 // p0 + p1
                 OP_ADD
 
                 // Pick p2 to the top of the stack
-                { (depth2 + 1) as u32} OP_PICK
+                { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[2] + 1 }
+                if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[2] {
+                    OP_ROLL
+                } else {
+                    OP_PICK
+                }
                 // Pick p3 to the top of the stack
-                { (depth3 + 2) as u32} OP_PICK
+                { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[3] + 2 }
+                if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[3] {
+                    OP_ROLL
+                } else {
+                    OP_PICK
+                }
                 // Then add p2 + p3
                 OP_ADD
 
                 // Finally add (p0+p1)+(p2+p3) and mod 16
                 OP_ADD
                 { generate_mod64_to_mod16() }
-
-                OP_TOALTSTACK
             );
         }
     }
-    mix_script = script!(
-        { mix_script }
-        { generate_drop_script(STACKSATSCRIPT_STATE_NIBBLES) }
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            OP_FROMALTSTACK
-        }
-    );
     mix_script
 }
 
@@ -297,6 +298,70 @@ const STACKSATSCRIPT_INV_FINAL_PERM: [usize; STACKSATSCRIPT_STATE_NIBBLES] = {
     inv_perm
 };
 
+#[derive(Copy, Clone)]
+struct PositionInfo {
+    depths: [usize; 4],
+    will_remove: [bool; 4],
+}
+
+const STACKATSCRIPT_MIXCOLUMN_DEPTHS: [PositionInfo; STACKSATSCRIPT_STATE_NIBBLES] = {
+    let mut position_used = [0usize; STACKSATSCRIPT_STATE_NIBBLES];
+    let mut r_idx = 0;
+    while r_idx < 8 {
+        let mut c_idx = 0;
+        while c_idx < 8 {
+            let position0 = r_idx * 8 + c_idx;
+            let position1 = ((r_idx + 1) % 8) * 8 + c_idx;
+            let position2 = ((r_idx + 2) % 8) * 8 + c_idx;
+            let position3 = ((r_idx + 3) % 8) * 8 + c_idx;
+            position_used[position0] += 1;
+            position_used[position1] += 1;
+            position_used[position2] += 1;
+            position_used[position3] += 1;
+            c_idx += 1;
+        }
+        r_idx += 1;
+    }
+
+    let mut depths = [PositionInfo {
+        depths: [0; 4],
+        will_remove: [false; 4],
+    }; STACKSATSCRIPT_STATE_NIBBLES];
+
+    let mut r_idx = 0;
+    while r_idx < 8 {
+        let mut c_idx = 0;
+        while c_idx < 8 {
+            let position = r_idx * 8 + c_idx;
+            let mut prev_idx = 0;
+            while prev_idx < 4 {
+                let prev_position = ((r_idx + prev_idx) % 8) * 8 + c_idx;
+                let mut prev_depth = STACKSATSCRIPT_STATE_NIBBLES - 1 - prev_position;
+                let mut greater_position = prev_position + 1;
+                while greater_position < STACKSATSCRIPT_STATE_NIBBLES {
+                    if position_used[greater_position] == 0 {
+                        prev_depth -= 1;
+                    }
+                    greater_position += 1;
+                }
+                prev_depth += position;
+
+                depths[position].depths[prev_idx] = prev_depth;
+                if position_used[prev_position] > 0 {
+                    position_used[prev_position] -= 1;
+                }
+                if position_used[prev_position] == 0 {
+                    depths[position].will_remove[prev_idx] = true;
+                }
+                prev_idx += 1;
+            }
+            c_idx += 1;
+        }
+        r_idx += 1;
+    }
+    depths
+};
+
 // Main optimized implementation
 fn stacksat128_optimized(stack: &mut StackTracker, msg_len: usize, define_var: bool) {
     // Handle empty message case (keep existing - it's already optimal)
@@ -339,7 +404,13 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: usize, define_var: b
             OP_TOALTSTACK
         }
     };
-    stack.custom(move_msg_to_altstack_script, 0, false, 0, "optimized_move_msg_to_altstack");
+    stack.custom(
+        move_msg_to_altstack_script,
+        0,
+        false,
+        0,
+        "optimized_move_msg_to_altstack",
+    );
 
     // Initialize state efficiently
     let state_init_script = generate_push_script(0, STACKSATSCRIPT_STATE_NIBBLES);

@@ -87,6 +87,27 @@ fn generate_push_sbox_script() -> Script {
     }
 }
 
+fn generate_push_script(value: u32, n: usize) -> Script {
+    if n == 0 {
+        script!()
+    } else if n == 1 {
+        script! {
+            { value }
+        }
+    } else {
+        script! {
+            { value }
+            { value }
+            for _ in 0..(n - 2) / 2 {
+                OP_2DUP
+            }
+            if n % 2 == 1 {
+                { value }
+            }
+        }
+    }
+}
+
 fn generate_drop_script(n: usize) -> Script {
     script! {
         for _ in 0..n/2 {
@@ -204,7 +225,7 @@ fn generate_optimized_round(round_idx: usize) -> Script {
 }
 
 // OPTIMIZATION 6: Efficient absorption phase
-fn generate_optimized_absorption(message_vars: &[StackVariable], block_idx: usize) -> Script {
+fn generate_optimized_absorption(msg_nibbles_len: usize, block_idx: usize) -> Script {
     script! {
         // Absorption phase optimized to minimize stack operations
         // Process rate nibbles efficiently
@@ -214,7 +235,7 @@ fn generate_optimized_absorption(message_vars: &[StackVariable], block_idx: usiz
             // This is more efficient than your current approach
 
             // The message nibble we want is at a calculable position
-            { message_vars.len() + STACKSATSCRIPT_STATE_NIBBLES - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_ROLL
+            { msg_nibbles_len + STACKSATSCRIPT_STATE_NIBBLES - (block_idx * STACKSATSCRIPT_RATE_NIBBLES + i) - 1 } OP_ROLL
 
             // The state nibble we want is at position i from the rate portion
             { (STACKSATSCRIPT_STATE_NIBBLES) as u32 } OP_ROLL
@@ -277,7 +298,7 @@ const STACKSATSCRIPT_INV_FINAL_PERM: [usize; STACKSATSCRIPT_STATE_NIBBLES] = {
 };
 
 // Main optimized implementation
-fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: bool) {
+fn stacksat128_optimized(stack: &mut StackTracker, msg_len: usize, define_var: bool) {
     // Handle empty message case (keep existing - it's already optimal)
     if msg_len == 0 {
         let empty_msg_hash_bytearray = <[u8; 32]>::from_hex(STACKSATSCRIPT_EMPTY_MSG_HASH).unwrap();
@@ -299,33 +320,29 @@ fn stacksat128_optimized(stack: &mut StackTracker, msg_len: u32, define_var: boo
     }
 
     // Message preparation (optimized but keeping your working approach)
-    let msg_nibbles_count = msg_len * 2;
-    let mut message_vars: Vec<StackVariable> = Vec::new();
+    let mut msg_nibbles_len = msg_len * 2;
     if define_var {
-        for i in 0..msg_nibbles_count as usize {
-            message_vars.push(stack.define(1, &format!("opt_msg_{}", i)));
+        for i in 0..msg_nibbles_len as usize {
+            stack.define(1, &format!("opt_msg_{}", i));
         }
     }
 
-    while message_vars.len() % STACKSATSCRIPT_RATE_NIBBLES != 0 {
-        message_vars.push(stack.number(0));
-    }
+    let padding_len = (STACKSATSCRIPT_RATE_NIBBLES - msg_nibbles_len % STACKSATSCRIPT_RATE_NIBBLES)
+        % STACKSATSCRIPT_RATE_NIBBLES;
+    msg_nibbles_len += padding_len;
+    let padding_script = generate_push_script(0, padding_len);
+    stack.custom(padding_script, 0, false, 0, "optimized_padding");
 
     // Initialize state efficiently
-    let state_init_script = script! {
-        for _ in 0..STACKSATSCRIPT_STATE_NIBBLES {
-            <0>
-        }
-    };
-
+    let state_init_script = generate_push_script(0, STACKSATSCRIPT_STATE_NIBBLES);
     stack.custom(state_init_script, 0, false, 0, "optimized_state_init");
 
     // Main processing loop (optimized)
-    let num_blocks = message_vars.len() / STACKSATSCRIPT_RATE_NIBBLES;
+    let num_blocks = msg_nibbles_len / STACKSATSCRIPT_RATE_NIBBLES;
 
     for block_idx in 0..num_blocks {
         // Optimized absorption
-        let absorption_script = generate_optimized_absorption(&message_vars, block_idx);
+        let absorption_script = generate_optimized_absorption(msg_nibbles_len, block_idx);
         stack.custom(
             absorption_script,
             0,
@@ -355,7 +372,7 @@ pub fn stacksat128_compute_script_with_limb(message_len: usize) -> Script {
         "STACKSAT-128: Message length > 1024 bytes not supported"
     );
     let mut stack = StackTracker::new();
-    stacksat128_optimized(&mut stack, message_len as u32, true);
+    stacksat128_optimized(&mut stack, message_len, true);
     stack.get_script()
 }
 
@@ -366,7 +383,7 @@ pub fn stacksat128_compute_script_optimized(message_len: usize) -> Script {
         "STACKSAT-128: Message length > 1024 bytes not supported"
     );
     let mut stack = StackTracker::new();
-    stacksat128_optimized(&mut stack, message_len as u32, true);
+    stacksat128_optimized(&mut stack, message_len, true);
     stack.get_script()
 }
 

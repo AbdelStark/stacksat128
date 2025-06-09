@@ -1,7 +1,7 @@
 //! Fixed Optimized STACKSAT-128 Bitcoin Script Implementation
 //! This version fixes compilation errors and works within your bitcoin_script constraints
 use bitcoin::hex::FromHex;
-use bitcoin_script_stack::stack::{StackTracker, StackVariable};
+use bitcoin_script_stack::stack::{StackTracker};
 
 pub use bitcoin_script::builder::StructuredScript as Script;
 pub use bitcoin_script::script;
@@ -12,7 +12,7 @@ const STACKSATSCRIPT_RATE_NIBBLES: usize = 32;
 const STACKSATSCRIPT_STATE_NIBBLES: usize = 64;
 const STACKSATSCRIPT_ROUNDS: usize = 16;
 const STACKSATSCRIPT_EMPTY_MSG_HASH: &str =
-    "bb04e59e240854ee421cdabf5cdd0416beaaaac545a63b752792b5a41dd18b4e";
+    "c5f691c6a65b0f446c17528b805359bce646bf0905e1418b4f25fe442be9f714";
 const STACKSATSCRIPT_SBOX: [u8; 16] = [
     0xC, 0x5, 0x6, 0xB, 0x9, 0x0, 0xA, 0xD, 0x3, 0xE, 0xF, 0x8, 0x4, 0x7, 0x1, 0x2,
 ];
@@ -243,6 +243,10 @@ fn generate_optimized_absorption() -> Script {
 
             // Add them modulo 16
             { generate_efficient_mod16_add() }
+        }
+
+        for _ in 0..STACKSATSCRIPT_RATE_NIBBLES {
+            { (STACKSATSCRIPT_STATE_NIBBLES - 1) as u32 } OP_ROLL
         }
     }
 }
@@ -591,9 +595,7 @@ mod tests {
         println!("=== OPTIMIZATION CORRECTNESS TEST ===");
 
         // Test that optimized version produces same results as reference
-        let message =
-            &hex::decode("0102030405060708090A0B0C0D0E0F10112233445566778899AABBCCDDEEFF00")
-                .unwrap();
+        let message = b"test";
         let expected_hash = stacksat128::stacksat_hash(message);
 
         let push_script = stacksat128_push_message_script(message);

@@ -1,7 +1,7 @@
 //! Fixed Optimized STACKSAT-128 Bitcoin Script Implementation
 //! This version fixes compilation errors and works within your bitcoin_script constraints
 use bitcoin::hex::FromHex;
-use bitcoin_script_stack::stack::{StackTracker};
+use bitcoin_script_stack::stack::StackTracker;
 
 pub use bitcoin_script::builder::StructuredScript as Script;
 pub use bitcoin_script::script;
@@ -19,7 +19,6 @@ const STACKSATSCRIPT_SBOX: [u8; 16] = [
 const STACKSATSCRIPT_RC: [u8; STACKSATSCRIPT_ROUNDS] =
     [1, 8, 12, 14, 15, 7, 11, 5, 10, 13, 6, 3, 9, 4, 2, 1];
 
-// OPTIMIZATION 1: Precomputed S-box lookup that works with your script! macro
 fn generate_optimized_sbox_script() -> Script {
     // Create a script that efficiently substitutes all 64 nibbles using a lookup table approach
     // that's compatible with your Bitcoin Script library constraints
@@ -44,7 +43,6 @@ fn generate_optimized_sbox_script() -> Script {
     }
 }
 
-// OPTIMIZATION 2: Efficient modular addition that works with your constraints
 fn generate_efficient_mod16_add() -> Script {
     script! {
         // Input: two nibbles on stack
@@ -81,6 +79,7 @@ fn generate_mod64_to_mod16() -> Script {
 
 fn generate_push_sbox_script() -> Script {
     script! {
+        // Push S-box to stack in reverse order
         for &value in STACKSATSCRIPT_SBOX.iter().rev() {
             {value}
         }
@@ -88,19 +87,25 @@ fn generate_push_sbox_script() -> Script {
 }
 
 fn generate_push_script(value: u32, n: usize) -> Script {
+    // Push a value n times to the stack
     if n == 0 {
+        // Do nothing
         script!()
     } else if n == 1 {
         script! {
+            // Push the value to the stack
             { value }
         }
     } else {
         script! {
+            // Push the value twice times to the stack
             { value }
             { value }
+            // Use 2DUP to duplicate the value n-2 times
             for _ in 0..(n - 2) / 2 {
                 OP_2DUP
             }
+            // If n is odd, push the value one more time
             if n % 2 == 1 {
                 { value }
             }
@@ -109,17 +114,19 @@ fn generate_push_script(value: u32, n: usize) -> Script {
 }
 
 fn generate_drop_script(n: usize) -> Script {
+    // Drop n items from the stack
     script! {
+        // Drop (n/2)*2 items from the stack
         for _ in 0..n/2 {
             OP_2DROP
         }
+        // If n is odd, drop one more item
         if n % 2 == 1 {
             OP_DROP
         }
     }
 }
 
-// OPTIMIZATION 3: Simplified permutation that minimizes stack operations
 fn generate_optimized_permutation() -> Script {
     let mut msg_depth = Vec::new();
     for dest_idx in 0..STACKSATSCRIPT_STATE_NIBBLES {
@@ -148,7 +155,6 @@ fn generate_optimized_permutation() -> Script {
     }
 }
 
-// OPTIMIZATION 4: Streamlined MixColumns with batch processing
 fn generate_optimized_mixcolumns() -> Script {
     let mut mix_script = script!();
 
@@ -162,6 +168,7 @@ fn generate_optimized_mixcolumns() -> Script {
                 { mix_script }
                 // Pick p0 to the top of the stack
                 { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[0] }
+                // If the position will be removed, roll the stack, otherwise pick the value
                 if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[0] {
                     OP_ROLL
                 } else {
@@ -169,6 +176,7 @@ fn generate_optimized_mixcolumns() -> Script {
                 }
                 // Pick p1 to the top of the stack
                 { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[1] + 1 }
+                // If the position will be removed, roll the stack, otherwise pick the value
                 if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[1] {
                     OP_ROLL
                 } else {
@@ -179,6 +187,7 @@ fn generate_optimized_mixcolumns() -> Script {
 
                 // Pick p2 to the top of the stack
                 { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[2] + 1 }
+                // If the position will be removed, roll the stack, otherwise pick the value
                 if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[2] {
                     OP_ROLL
                 } else {
@@ -186,6 +195,7 @@ fn generate_optimized_mixcolumns() -> Script {
                 }
                 // Pick p3 to the top of the stack
                 { STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].depths[3] + 2 }
+                // If the position will be removed, roll the stack, otherwise pick the value
                 if STACKATSCRIPT_MIXCOLUMN_DEPTHS[position].will_remove[3] {
                     OP_ROLL
                 } else {
@@ -194,8 +204,9 @@ fn generate_optimized_mixcolumns() -> Script {
                 // Then add p2 + p3
                 OP_ADD
 
-                // Finally add (p0+p1)+(p2+p3) and mod 16
+                // Finally add (p0+p1)+(p2+p3)
                 OP_ADD
+                // Mod 16
                 { generate_mod64_to_mod16() }
             );
         }
@@ -203,7 +214,6 @@ fn generate_optimized_mixcolumns() -> Script {
     mix_script
 }
 
-// OPTIMIZATION 5: Complete optimized round function
 fn generate_optimized_round(round_idx: usize) -> Script {
     let round_constant = STACKSATSCRIPT_RC[round_idx];
 
@@ -225,7 +235,6 @@ fn generate_optimized_round(round_idx: usize) -> Script {
     }
 }
 
-// OPTIMIZATION 6: Efficient absorption phase
 fn generate_optimized_absorption() -> Script {
     script! {
         // Absorption phase optimized to minimize stack operations

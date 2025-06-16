@@ -127,15 +127,12 @@ fn round(st: &mut [u8; STATE_NIBBLES], r: usize) {
     st[STATE_NIBBLES - 1] = add16(st[STATE_NIBBLES - 1], RC[r]);
 }
 
-/// Multi-rate padding: append 0x8 (nibble), zeros, then 0x1 (nibble).
+/// Multi-rate padding: append zeros until the length is a multiple of RATE_NIBBLES
 /// Takes ownership and returns a new padded Vec.
 fn pad(mut nibbles: Vec<u8>) -> Vec<u8> {
-    nibbles.push(0x8); // Add padding byte
-    while (nibbles.len() % RATE_NIBBLES) != (RATE_NIBBLES - 1) {
+    while (nibbles.len() % RATE_NIBBLES) != 0 {
         nibbles.push(0x0); // Pad with zeros
     }
-    nibbles.push(0x1); // Add final terminator byte
-    debug_assert!(nibbles.len() % RATE_NIBBLES == 0);
     nibbles
 }
 
@@ -147,8 +144,19 @@ pub fn stacksat_hash(msg: &[u8]) -> [u8; DIGEST_BYTES] {
         v.push(byte >> 4);
         v.push(byte & 0xF);
     }
-    // Pad takes ownership and returns the padded vector
-    let padded_nibbles = pad(v);
+
+    let msg_len = v.len();
+    let is_empty = msg_len == 0;
+
+    let padded_nibbles = if is_empty {
+        // For empty message: one block of zeros with length=0
+        let mut padded = vec![0u8; RATE_NIBBLES];
+        // Set length to 0 in the first few nibbles (you can adjust how many nibbles to use)
+        padded[0] = 0; // length = 0
+        padded
+    } else {
+        pad(v)
+    };
 
     // --- 2. Initialise State ---
     let mut st = [0u8; STATE_NIBBLES]; // All zeros IV
@@ -157,21 +165,18 @@ pub fn stacksat_hash(msg: &[u8]) -> [u8; DIGEST_BYTES] {
     let mut chunk_start = 0;
     while chunk_start < padded_nibbles.len() {
         // Absorb one block (RATE_NIBBLES)
-        // Script: Loop 32 times, OP_PICK msg nibble, OP_PICK state nibble, add16, store state nibble.
         for i in 0..RATE_NIBBLES {
             st[i] = add16(st[i], padded_nibbles[chunk_start + i]);
         }
         chunk_start += RATE_NIBBLES;
 
         // Apply the permutation rounds
-        // Script: Unroll 16 rounds. Each round is a sequence of opcodes.
         for r in 0..ROUNDS {
             round(&mut st, r);
         }
     }
 
     // --- 4. Squeeze 256-bit Digest ---
-    // Script: Loop 32 times, OP_PICK st[2i],  OP_LSHIFT, OP_PICK st[2i+1], OP_OR. Collect bytes.
     let mut out_digest = [0u8; DIGEST_BYTES];
     for (i, item) in out_digest.iter_mut().enumerate().take(DIGEST_BYTES) {
         let nibble_idx1 = i * 2;
@@ -320,7 +325,7 @@ mod tests {
     fn test_empty_message() {
         let msg = b"";
         let digest = stacksat_hash(msg);
-        let expected_hash = "bb04e59e240854ee421cdabf5cdd0416beaaaac545a63b752792b5a41dd18b4e";
+        let expected_hash = "c5f691c6a65b0f446c17528b805359bce646bf0905e1418b4f25fe442be9f714";
         assert_eq!(hex::encode(digest), expected_hash);
     }
 

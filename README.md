@@ -90,7 +90,7 @@ fn main() {
 
 ## Specification
 
-The detailed algorithmic specification can be found in [SPECIFICATION.md](SPECIFICATION.md).
+The detailed algorithmic specification can be found in [SPECIFICATION.md](specification.md).
 
 ## License
 
